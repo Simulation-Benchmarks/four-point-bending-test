@@ -1,0 +1,67 @@
+! ### Reinforcement ###
+! Linear parameters
+e_reinf = 2.05e11		! Youngs modulus [N/m^2]
+nu_reinf = 0.3			! Poisson [-]
+
+! Bilinar 
+sig_ry = 401.00e6		! mean yield strength [N/m^2]
+eps_ry = sig_ry/e_reinf
+sig_ru = 596.00e6		! mean ultimate tensile strength [N/m^2]
+eps_ru = 0.231
+
+! ### Load and Support plate ###
+! Linear parameters
+e_supp = 2.1e11			! Youngs modulus [N/m^2]
+nu_supp	= 0.3			! Poisson [-]
+
+! ### Concrete ###
+switch_model = 0		! 0 = Drucker-Prager
+						! 1 = Microplane (M7)
+! ### Concrete - DP ###
+! Linear and DP parameters
+e_c = 25660e6			! Youngs modulus  [N/m^2]
+nu_c = 0.2				! Poisson Beton [-]
+sig_cc = 16.71e6		! mean compressive strength [N/m^2]
+sig_ct = 1.0*1.30e6			! mean tensile strength [N/m^2]
+
+! Hardening/Softening DP parameters
+! DP strength parameters									
+R_c	= sig_cc				! Uniaxial compressive strength
+R_t	= sig_ct				! Uniaxial tensile strength (recommended by dynardo (multiplas): R_t=0.1*R_c for normal concrete)
+R_b	= 1.2*R_c				! Biaxial compressive strength (recommended by dynardo (multiplas): R_b=1.2*R_c for normal concrete)
+! DILA dilatation
+del_t = 0.25				! Tensile dilatancy parameter (recommended by dynardo (multiplas): del_t=0.25)
+del_c = 1.0					! Compression dilatancy parameter (recommended by dynardo (multiplas): del_c=1.0)
+! HSD for linear and exp
+omega_ci = 0.33				! Relative stress at onset (=start) of nonlinear hardening (recommended by dynardo (multiplas): O_ci=0.33)
+omega_cr = 0.2				! Residual compressive relative stress (recommended by dynardo (multiplas): omega_cr=0.2)
+omega_tr = 0.1				! Residual tensile relative stress	
+kappa_cm = 0.0021-R_c/e_c	! Plastic strain at uniaxial compressive strength (kappa_cm = eps_ml-R_c/E)
+! extra params for HSD6 - linear softening
+kappa_cr = 0.01				! Ultimate effective plastic strain in compression	
+		 ! 0.005			! -> play around (the smaller, the quicker the concrete gives up)
+kappa_tr = 0.001			! Plastic strain limit in tension
+! extra params for HSD2 - exponential softening
+omega_cu = 0.85						! Residual relative stress at kappa_cu	
+kappa_cu = 0.0035-omega_cu*R_c/e_c	! Plastic strain at transition from power law to exponential softening	(kappa_cu = eps_u-omega_u* R_c/E)
+G_ft = 100							! Mode I area-specific fracture energy [Force/length^2]	
+
+! Switch for HSD yes/no
+switch_hsd = 1						! = 0: no HSD
+									! = 1: with HSD
+									
+! Switch for picking linear/exp HSD (irrelevat if switch_hsd=0)
+switch_dp = 0						! = 0: HSD2	Drucker-Prager concrete exponential hardening/softening/dilitation (HSD) behavior
+									! = 1: HSD6	Drucker-Prager concrete linear HSD behavior
+									
+! ### Concrete - Microplane (M7) ###
+sigVc0 = -13.368e6!-35e6						! Intersection point abscissa between compression cap and DP yield function [N/m^2]
+R_MP = 2							! Ratio between the major and minor axes of the cap [-] (=R in manual)
+D_MP = 4e4							! Hardening material constant [N^2/m^4] (=D in manual)
+Rt = 1								! Tension cap hardening constant [-]
+gamt0 = 0							! Tension damage threshold [-]
+gamc0 = 2e-5						! Compression damage threshold [-]
+betat = .3e4						! Tension damage evolution constant [-]
+betac = .2e4						! Compression damage evolution constant [-]
+c_MP = 4e-4							! Nonlocal interaction range parameter [m^2]
+m_MP = 2.5								! Over-nonlocal averaging parameter [-]
