@@ -1,0 +1,21 @@
+# Conda environment for the fib TG 2.4.3 / R65 Eurocode 2 design computation.
+#
+#   conda env create -f environment.yml
+#   conda activate fibtg243
+#   python R65.py
+#
+# Note: structuralcodes is not published on conda-forge, so it is installed
+# from PyPI via the pip section below.  Its own dependencies (numpy, scipy,
+# shapely) are pinned here through conda-forge instead, so that only the
+# library itself comes from pip.
+name: fibtg243
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy>=1.20
+  - scipy>=1.6
+  - shapely>=2.0.2
+  - pip
+  - pip:
+      - structuralcodes>=0.7.1   # fib-international/structuralcodes
