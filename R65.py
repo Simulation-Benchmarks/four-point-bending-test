@@ -126,35 +126,6 @@ def bending_resistance(p, concrete, steel):
     return abs(res.m_y) * KNM
 
 
-def self_weight(p):
-    """Self weight of the beam: (g_k [kN/m], M_g [kNm], V_g [kN]).
-
-    Simply supported over ``span`` with an ``overhang`` at each end, so the
-    overhangs relieve the midspan moment and the support shear.
-    """
-    g_k = p["gamma_concrete"] * 1e-9 * p["b"] * p["h"] * 1e3        # kN/m
-    span, overhang = p["span"], p["overhang"]
-    reaction = g_k * (span + 2.0 * overhang) / 2e3                  # kN
-    M_g = reaction * (span / 2e3) - g_k * ((span / 2 + overhang) / 1e3) ** 2 / 2
-    V_g = reaction - g_k * overhang / 1e3
-    return g_k, M_g, V_g
-
-
-def P_from_moment(p, M_R, gamma_g):
-    """P [kN] from  M_Ed = gamma_G M_g + P a_shear <= M_R."""
-    _, M_g, _ = self_weight(p)
-    return (M_R - gamma_g * M_g) / (p["a_shear"] / 1e3)
-
-
-def P_from_shear(p, V_R, gamma_g, beta=1.0):
-    """P [kN] from  V_Ed = gamma_G V_g + beta P <= V_R.
-
-    ``beta`` < 1 applies the 6.2.2(6) reduction of the contribution of a point
-    load applied within 2d of the support.
-    """
-    _, _, V_g = self_weight(p)
-    return (V_R - gamma_g * V_g) / beta
-
 
 def shear_resistance(p, concrete, steel, theta_deg=None):
     """V_R of a shear span WITH stirrups, 6.2.3 (variable strut inclination).
@@ -199,6 +170,37 @@ def shear_resistance_no_stirrups(p, concrete):
                       Ac=p["b"] * p["h"], fcd=concrete.fcd(), k1=K1,
                       gamma_c=concrete.gamma_c) * KN
 
+####
+# problem specific functions for calculation of the moments and shear forces
+def self_weight(p):
+    """Self weight of the beam: (g_k [kN/m], M_g [kNm], V_g [kN]).
+
+    Simply supported over ``span`` with an ``overhang`` at each end, so the
+    overhangs relieve the midspan moment and the support shear.
+    """
+    g_k = p["gamma_concrete"] * 1e-9 * p["b"] * p["h"] * 1e3        # kN/m
+    span, overhang = p["span"], p["overhang"]
+    reaction = g_k * (span + 2.0 * overhang) / 2e3                  # kN
+    M_g = reaction * (span / 2e3) - g_k * ((span / 2 + overhang) / 1e3) ** 2 / 2
+    V_g = reaction - g_k * overhang / 1e3
+    return g_k, M_g, V_g
+
+
+def P_from_moment(p, M_R, gamma_g):
+    """P [kN] from  M_Ed = gamma_G M_g + P a_shear <= M_R."""
+    _, M_g, _ = self_weight(p)
+    return (M_R - gamma_g * M_g) / (p["a_shear"] / 1e3)
+
+
+def P_from_shear(p, V_R, gamma_g, beta=1.0):
+    """P [kN] from  V_Ed = gamma_G V_g + beta P <= V_R.
+
+    ``beta`` < 1 applies the 6.2.2(6) reduction of the contribution of a point
+    load applied within 2d of the support.
+    """
+    _, _, V_g = self_weight(p)
+    return (V_R - gamma_g * V_g) / beta
+####
 
 def compute_P(p):
     """Maximum point load P for one parameter set. Main entry point.
