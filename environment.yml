@@ -16,6 +16,7 @@ dependencies:
   - numpy>=1.20
   - scipy>=1.6
   - shapely>=2.0.2
+  - jupyter
   - pip
   - pip:
       - structuralcodes>=0.7.1   # fib-international/structuralcodes

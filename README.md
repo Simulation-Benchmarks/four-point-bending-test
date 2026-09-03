@@ -4,15 +4,11 @@ aim: eurocode conform solution of the fib TG2.3.4 test case
 
 ## Context
 
-`fib` TG 2.4 / WP 2.4.3 circulated a benchmark (`2026-07_fib_TG243_NLFEA_Example.pdf`) asking
-participants to reproduce the Rüsch & Rehm (1963) beam test **R65** by *nonlinear finite element
-analysis*, and to report the maximum **design value** of the applied point loads `P` — with stirrups
+`fib` TG 2.4 / WP 2.4.3 benchmark (`2026-07_fib_TG243_NLFEA_Example.pdf`) using the Rüsch & Rehm (1963) beam test **R65** computing the maximum **design value** of the applied point loads `P` — with stirrups
 (question 6) and without stirrups in the shear spans (question 7).
 
 This repo deliberately answers the same two questions **without FEM**, by a classic clause-by-clause
-design computation to DIN EN 1992-1-1:2011-01. The purpose is to give the task group a transparent
-code reference point against which the NLFEA submissions can be judged, and to quantify how much of
-the gap to the measured `R_exp = 259.2 kN` is safety margin and how much is model bias.
+design computation to DIN EN 1992-1-1:2011-01 as a reference. 
 
 Sources in this repo:
 
@@ -102,8 +98,7 @@ ULS bending and shear, plus a mean-level comparison against the experiment. No d
 
 ## Results
 
-Computed by `R65.py` and cross-checked against an independent hand calculation made before any
-code was written (cell 10 of the file asserts the agreement; all checks pass, max deviation 0.4 %).
+Computed by `R65.py`:
 
 | Case | Value |
 |---|---|
@@ -127,20 +122,11 @@ Two observations:
    discards, not model error. This beam is very under-reinforced (ρ_l = 0.60 %) and the steel is
    highly ductile (A₁₀ = 23.1 %, f_um/f_ym = 1.49), so the effect is large.
 
-Sensitivity of the Q6 answer to the assumptions not fixed by the standard:
-
-| Variant | M_Rd [kNm] | P_d [kN] |
-|---|---|---|
-| f_yk = f_ym/1.1 (base) | 171.4 | 159.0 |
-| f_yk = f_ym − 1.645·30 | 166.2 | 153.7 |
-| f_yk = f_ym (no reduction) | 185.9 | 173.4 |
-| α_cc = 0.85 (German NA value) | 167.1 | 154.7 |
 
 ## Implementation
 
-A single file, [`R65.py`](R65.py), in percent-cell format: it runs as a plain script
-(`python R65.py`) and also opens cell-by-cell in VS Code, PyCharm or Spyder, while staying
-diffable in git. Ten cells, following the order an engineer would check the calculation in.
+A single file, [`R65.py`](R65.py): it runs as a plain script
+(`python R65.py`).
 
 It is built on [`structuralcodes`](https://github.com/fib-international/structuralcodes) — *fib*'s
 own EC2 library — which supplies the material models (3.1, 3.2), the section analysis for M_Rd
