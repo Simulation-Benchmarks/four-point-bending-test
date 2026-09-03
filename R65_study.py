@@ -57,8 +57,8 @@ def rule(title):
 # ---------------------------------------------------------------------
 rule("1. Q6 and Q7 — design level")
 
-q6 = run(case="with_stirrups")
-q7 = run(case="without_stirrups")
+q6 = run(level="design",branch="elasticperfectlyplastic",case="with_stirrups")
+q7 = run(level="design",branch="elasticperfectlyplastic",case="without_stirrups")
 print(format_result(q6))
 print()
 print(format_result(q7))
