@@ -88,8 +88,9 @@ repo — page 13 of the PDF only *lists* which clauses are nationally determined
 | cot θ | 1 ≤ cot θ ≤ 2.5, eq. (6.7N) | 6.2.3(2) |
 | ν | eq. (6.6N) | 6.2.2(6) |
 
-Every NDP is kept as a named argument in the code so that a National Annex can be substituted later
-without touching a formula.
+Every NDP is a named constant at the top of `R65.py`, or a named argument passed to the library,
+so that a National Annex can be substituted later without touching a formula. They are kept out of
+`params.yaml` deliberately: they describe the code being applied, not the specimen being computed.
 
 ### Scope
 
@@ -98,7 +99,7 @@ ULS bending and shear, plus a mean-level comparison against the experiment. No d
 
 ## Results
 
-Computed by `R65.py`:
+Computed by `R65.py`; the variants below are driven by `R65_study.py`:
 
 | Case | Value |
 |---|---|
@@ -108,6 +109,15 @@ Computed by `R65.py`:
 | **Q7: P_d without stirrups** | **45.5 kN** plain 6.2.2, **53.4 kN** with the a_v < 2d allowance — a 66–71 % reduction |
 | Mean level, horizontal branch | P = 224.8 kN vs R_exp = 259.2 → R_exp/R_calc = 1.153 |
 | Mean level, inclined branch | P = 243.2 kN vs R_exp = 259.2 → R_exp/R_calc = 1.066 |
+| Mean level, shear as built | P = 568.4 kN (6.2.3, θ_opt = 25.6°) against P = 224.8 kN in bending — the specimen failed in flexure by a factor of 2.5, so comparing R_exp to a bending resistance is a result, not an assumption |
+| Mean level, shear without stirrups | P = 99.1–116.3 kN, far below R_exp = 259.2 kN — the stirrups were what carried the beam to its measured load |
+
+The two mean-level shear figures are **not** R(x_m) in the sense of the safety formats
+(`2026-05-26_fibTG243_4rd_Meeting_Safety_concepts.pdf`): C_Rd,c = 0.18/γ_C keeps the
+characteristic-level constant 0.18 when γ_C is set to 1, and ν = 0.6(1 − f_ck/250) in 6.2.3 is a
+strut *effectiveness* factor calibrated on f_ck rather than a strength. Both are mean-material /
+characteristic-model hybrids. EC2 gives no mean value of either, and the background documents are
+not in this repo, so they are reported as hybrids. At a margin of 2.5 it changes no conclusion.
 
 Two observations:
 
@@ -122,23 +132,85 @@ Two observations:
    discards, not model error. This beam is very under-reinforced (ρ_l = 0.60 %) and the steel is
    highly ductile (A₁₀ = 23.1 %, f_um/f_ym = 1.49), so the effect is large.
 
+   The figure 1.066 rests on the **assumed ε_uk = 0.10**. The section never reaches ε_ud — it fails
+   by concrete crushing with the steel at ε ≈ 0.018 — so ε_uk leaves the horizontal branch at
+   234.0 kNm untouched whatever its value. But it sets the *slope* of the inclined branch,
+   E_h = (f_td − f_yd)/(ε_ud − ε_yd), and over a plausible range 0.05 ≤ ε_uk ≤ 0.15 the ratio moves
+   between 1.00 and 1.09. The honest statement is therefore that hardening closes most of the gap,
+   with the residual quoted as a range rather than as a single number.
+
 
 ## Implementation
 
-A single file, [`R65.py`](R65.py): it runs as a plain script
-(`python R65.py`).
+Structured so that a benchmark platform can trigger the computation from a parameter file:
 
-It is built on [`structuralcodes`](https://github.com/fib-international/structuralcodes) — *fib*'s
-own EC2 library — which supplies the material models (3.1, 3.2), the section analysis for M_Rd
-(6.1 with the constitutive laws of 3.1.7) and the shear equations (6.2.2, 6.2.3). Only the
-project-specific parts are written here: the mean→characteristic conversion, the four-point-bending
-statics, the cot θ optimisation and the a_v < 2d reduction, which the library does not cover.
+| File | Role |
+|---|---|
+| [`params.yaml`](params.yaml) | the specimen and the variant to compute — the only input |
+| [`R65.py`](R65.py) | the computation; `compute_P(params)` is the entry point |
+| [`R65_study.py`](R65_study.py) | the parameter study that produced the results above |
 
 ```
 conda env create -f environment.yml
 conda activate fibtg243
-python R65.py
+
+python R65.py                 # one load case, read from params.yaml
+python R65.py other.yaml      # any parameter file
+python R65_study.py           # all five investigations
 ```
+
+### What lives where
+
+`params.yaml` holds everything that comes from the benchmark definition — geometry, reinforcement,
+the measured mean strengths, the unit weight of the concrete — each with its unit and a one-line
+description. It also selects the variant:
+
+| Key | Values | Meaning |
+|---|---|---|
+| `level` | `design` \| `mean` | characteristic strengths / γ_M with factored actions, or the measured means with γ_M = 1 and unfactored actions |
+| `branch` | `elasticperfectlyplastic` \| `elasticplastic` | horizontal top branch 3.2.7(2)b, or the inclined branch 3.2.7(2)a carrying strain hardening |
+| `case` | `with_stirrups` \| `without_stirrups` | shear by the 6.2.3 truss (Q6), or by the empirical 6.2.2 (Q7) |
+
+Everything DIN EN 1992-1-1 fixes stays in `R65.py` as a module constant — γ_C, γ_S, γ_G, γ_Q,
+α_cc, E_s, k₁, the `f_ck = f_cm − 8` relation, `z = 0.9d`, and the cot θ window of eq. (6.7N) —
+because those are properties of the code, not of the test. Every one is named, so a National Annex
+can be substituted without touching a formula. The single exception is `BIAS_STEEL = 1.10`: it is
+an assumption rather than a clause, but it belongs to the code side, so it sits with the constants
+and is flagged there.
+
+One naming trap: `gamma_concrete` in the parameter file is the **unit weight** (Wichte, 25 kN/m³,
+EN 1991-1-1 Table A.1) used for the self weight — *not* γ_C = 1.5, the partial factor, which is a
+code constant in `R65.py`.
+
+### Structure of `R65.py`
+
+Functions first, nothing executed at import time:
+
+`make_materials` → `bending_resistance` → `self_weight` → `P_from_moment` / `P_from_shear` →
+`shear_resistance` (6.2.3) / `shear_resistance_no_stirrups` (6.2.2) → **`compute_P`**
+
+`compute_P(params)` returns a dict — `P`, `governs`, `M_R`, `V_R`, `P_bending`, `P_shear`, the
+derived material strengths, the self weight, and θ or β depending on the case — so a platform can
+consume the result without parsing text. `format_result` renders that same dict for the terminal,
+and `__main__` does nothing but read the YAML, call `compute_P` and print.
+
+Load factors follow the level: γ_G = 1.35 at `level: design`, γ_G = 1.0 at `level: mean`, since a
+comparison against the experiment must not carry a load factor the experiment never saw.
+
+`R65_study.py` imports `R65`, copies the default parameters, overrides one thing at a time and
+calls `compute_P`. It reproduces the two benchmark answers, the mean-level comparison against
+R_exp, the mode check behind it, the sensitivity of Q6 to the assumptions EC2 does not fix, and
+the sensitivity of the inclined branch to ε_uk. Assumptions that are deliberately *not* in the
+parameter file (`BIAS_STEEL`, `ALPHA_CC`) are varied through a small context manager that restores
+the module constant afterwards.
+
+### Library
+
+Built on [`structuralcodes`](https://github.com/fib-international/structuralcodes) — *fib*'s own
+EC2 library — which supplies the material models (3.1, 3.2), the section analysis for M_Rd (6.1
+with the constitutive laws of 3.1.7) and the shear equations (6.2.2, 6.2.3). Only the
+project-specific parts are written here: the mean→characteristic conversion, the four-point-bending
+statics, the cot θ optimisation and the a_v < 2d reduction, which the library does not cover.
 
 `structuralcodes` is not published on conda-forge, so `environment.yml` installs it from PyPI in a
 `pip:` section while its dependencies come from conda-forge.

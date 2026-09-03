@@ -1,21 +1,31 @@
-# %% [markdown]
-# # Eurocode 2 design computation — fib TG 2.4.3 benchmark, specimen R65
-#
-# Four-point bending beam of Rüsch & Rehm (1963), answered **without FEM** by a
-# classic design computation to DIN EN 1992-1-1:2011-01.
-#
-# * **Q6** — maximum design value of the point loads `P`, beam as built (with stirrups).
-# * **Q7** — the same, with the stirrups removed from the shear spans.
-#
-# Built on [`structuralcodes`](https://github.com/fib-international/structuralcodes),
-# *fib*'s own EC2 library. Clause numbers refer to DIN EN 1992-1-1:2011-01.
-# Units are N and mm internally; results are printed in kN and kNm.
-#
-# Run as a script (`python R65.py`) or cell-by-cell in VS Code / PyCharm / Spyder.
+"""Eurocode 2 design computation — fib TG 2.4.3 benchmark, specimen R65.
 
-# %%
+Four-point bending beam of Rüsch & Rehm (1963), answered **without FEM** by a
+classic design computation to DIN EN 1992-1-1:2011-01.
+
+* **Q6** — maximum design value of the point loads ``P``, beam as built
+  (``case: with_stirrups``).
+* **Q7** — the same with the stirrups removed from the shear spans
+  (``case: without_stirrups``).
+
+The specimen and the variant of the computation are described entirely by a
+parameter file; everything the Eurocode fixes is a constant in this module.
+``compute_P`` is the single entry point::
+
+    python R65.py [params.yaml]
+
+Built on `structuralcodes <https://github.com/fib-international/structuralcodes>`_,
+*fib*'s own EC2 library.  Clause numbers refer to DIN EN 1992-1-1:2011-01.
+Units are N and mm internally; results are returned in kN and kNm.
+"""
+
+from __future__ import annotations
+
 import math
+import sys
+from pathlib import Path
 
+import yaml
 from shapely import Polygon
 from structuralcodes.codes.ec2_2004 import shear
 from structuralcodes.geometry import SurfaceGeometry, add_reinforcement
@@ -24,307 +34,261 @@ from structuralcodes.materials.reinforcement import ReinforcementEC2_2004
 from structuralcodes.sections import GenericSection
 
 # unit inversion (alternative use pint)
-MM2, KN, KNM = 1.0, 1e-3, 1e-6  # N,mm -> kN, kNm
+KN, KNM = 1e-3, 1e-6            # N, Nmm -> kN, kNm
 
-# %% [markdown]
-# ## 1. Specimen data
+# =====================================================================
+# Constants of DIN EN 1992-1-1:2011-01 and EN 1990.
 #
-# From the appendix of `2026-07_fib_TG243_NLFEA_Example.pdf`.
+# These are properties of the code, not of the specimen, so they do not
+# belong in the parameter file.  The nationally determined parameters are
+# the CEN recommended values: the German National Annex is a separate
+# document and is not available in this repository.
+# =====================================================================
+GAMMA_C = 1.5           # Table 2.1N, concrete
+GAMMA_S = 1.15          # Table 2.1N, reinforcement
+GAMMA_G = 1.35          # EN 1990 Table A1.2(B), permanent action
+GAMMA_Q = 1.5           # EN 1990 Table A1.2(B), variable action
+ALPHA_CC = 1.0          # 3.1.6(1)P, NDP, EN recommended value
+ES = 200000.0           # 3.2.7(4), modulus of elasticity of reinforcement [MPa]
+K1 = 0.15               # 6.2.2(1), NDP, EN recommended value
+DELTA_FCK = 8.0         # Table 3.1, f_ck = f_cm - 8 [MPa]
+Z_FACTOR = 0.9          # 6.2.3(1), inner lever arm z = 0.9 d
 
-# %%
-# geometry [mm]
-B, H, D, D2 = 300.0, 625.0, 587.0, 38.5   # width, depth, eff. depth, top-steel depth (Betondeckung)
-SPAN, OVERHANG, A_SHEAR = 4000.0, 255.0, 1000.0   # support spacing, overhang, shear span
+# ASSUMPTION, outside EC2.  EC2 gives no mean -> characteristic relation for
+# reinforcement (the 0.7 of Table 3.1 is specific to the concrete tensile
+# strength, CoV ~ 18 %, and must not be transferred to rebar at CoV ~ 5 %).
+# The code-calibration bias factor is used instead.  This is the only material
+# value in the whole computation not traceable to a document in this repository.
+BIAS_STEEL = 1.10
 
-# reinforcement
-# bending
-PHI_BOT, N_BOT = 26.0, 2      # 2 Ø26 = 1062 mm^2
-PHI_TOP, N_TOP = 10.0, 2      # 2 Ø10 =  157 mm^2
-# shear
-ASW, S_W = 157.0, 120.0       # Ø10 two-legged stirrups @ 120 mm
+# theta within [21.8, 45] deg, from 1 <= cot theta <= 2.5, eq. (6.7N).
+# Both VRds and VRdmax reject angles outside this window.
+THETA_GRID = [21.8 + i * (45.0 - 21.8) / 400 for i in range(401)]
 
-# measured mean material properties [MPa]
-FCM, FCTM, ECM = 16.71, 1.30, 25660.0
-FYM, FUM = 401.0, 596.0
-EPSUK = 0.10                  # characteristik strain at the ultimate stress level: assumed; 
+DEFAULT_PARAMS = Path(__file__).with_name("params.yaml")
 
-# partial factors, Table 2.1N
-GAMMA_C, GAMMA_S, GAMMA_G, GAMMA_Q = 1.5, 1.15, 1.35, 1.5
-ALPHA_CC = 1.0                # 3.1.6(1)P, EN recommended value
 
-R_EXP = 259.2                 # measured failure load per point load [kN]
+def load_params(path=DEFAULT_PARAMS):
+    """Read a benchmark parameter file into a plain dict."""
+    with open(path, "r", encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
 
-# %% [markdown]
-# ## 2. Mean → characteristic
-#
-# **Concrete — source-backed.** Table 3.1 gives the inverse relations directly:
-# `f_ck = f_cm − 8` and `f_ctk;0,05 = 0.7·f_ctm`. Self-consistency check below
-# confirms the fib data sheet was generated with these same relations.
-#
-# **Steel — assumption, outside EC2.** EC2 has no mean→characteristic relation for
-# reinforcement (Table 3.1's 0.7 factor is concrete-tensile-specific, CoV ≈ 18 %).
-# The code-calibration bias factor 1.1 is used. This is the only material value in
-# the whole computation not traceable to a document in this repo.
 
-# %%
-FCK = FCM - 8.0          # Table 3.1
-FYK = FYM / 1.10         # ASSUMPTION - not EC2
-FTK = FUM / 1.10         # ASSUMPTION - not EC2
+def make_materials(p):
+    """Return (concrete, steel) at the safety level requested by ``p``.
 
-print(f"Table 3.1   f_ck       = f_cm - 8   = {FCM} - 8      = {FCK:.2f} MPa")
-print(f"Table 3.1   f_ctk;0,05 = 0.7 f_ctm  = 0.7 * {FCTM}   = {0.7 * FCTM:.3f} MPa")
-print(f"ASSUMPTION  f_yk       = f_ym / 1.1 = {FYM} / 1.1  = {FYK:.1f} MPa")
-print()
-print("self-consistency of the given mean values with Table 3.1:")
-print(f"   22*(f_cm/10)^0.3     = {22e3 * (FCM / 10) ** 0.3 / 1e3:7.2f} GPa  vs given E_cm  = {ECM / 1e3:.2f} GPa")
-print(f"   0.30*f_ck^(2/3)      = {0.30 * FCK ** (2 / 3):7.2f} MPa  vs given f_ctm = {FCTM:.2f} MPa")
-print()
-print(f"NOTE f_ck = {FCK:.2f} MPa is below C12/15, the lowest row of Table 3.1.")
-print("     EC2 has no structural minimum class (Table E.1N is durability only),")
-print("     so the value is used as derived and NOT rounded up.")
-
-# %% [markdown]
-# ## 3. Materials
-#
-# One factory serves both safety levels: `"design"` applies γ_C = 1.5 / γ_S = 1.15 to
-# the characteristic strengths, `"mean"` sets both to 1.0 and feeds the measured means.
-# The mean level is what gets compared against the experiment.
-#
-# `elasticperfectlyplastic` is the horizontal top branch of 3.2.7(2)b;
-# `elasticplastic` is the inclined branch of 3.2.7(2)a, which carries strain hardening.
-
-# %%
-def make_materials(level="design", branch="elasticperfectlyplastic"):
-    """Return (concrete, steel) at the requested safety level."""
+    ``level: design`` applies gamma_C = 1.5 / gamma_S = 1.15 to strengths
+    converted from the measured means; ``level: mean`` feeds the measured means
+    with gamma_M = 1.0, which is what gets compared against the experiment.
+    """
+    level = p["level"]
     if level == "design":
-        fck, fyk, ftk, g_c, g_s = FCK, FYK, FTK, GAMMA_C, GAMMA_S
+        fck = p["fcm"] - DELTA_FCK              # Table 3.1
+        fyk = p["fym"] / BIAS_STEEL             # ASSUMPTION - not EC2
+        ftk = p["fum"] / BIAS_STEEL             # ASSUMPTION - not EC2
+        gamma_c, gamma_s = GAMMA_C, GAMMA_S
     elif level == "mean":
-        fck, fyk, ftk, g_c, g_s = FCM, FYM, FUM, 1.0, 1.0
+        fck, fyk, ftk = p["fcm"], p["fym"], p["fum"]
+        gamma_c, gamma_s = 1.0, 1.0
     else:
-        raise ValueError(level)
+        raise ValueError(f"unknown level {level!r}, expected 'design' or 'mean'")
+
     concrete = ConcreteEC2_2004(
-        fck=fck, fctm=FCTM, Ecm=ECM, gamma_c=g_c, alpha_cc=ALPHA_CC,
+        fck=fck, fctm=p["fctm"], Ecm=p["ecm"], gamma_c=gamma_c,
+        alpha_cc=ALPHA_CC,
         constitutive_law="parabolarectangle",   # 3.1.7(1), eq. (3.17)/(3.18)
     )
-    # NOTE: EPSUK (characteristic strain at ULS) assumed to be 0.10 - not reached in the end
+    # NOTE epsuk is assumed, see params.yaml. It is not reached by this section,
+    # but it does set the slope of the inclined branch 3.2.7(2)a.
     steel = ReinforcementEC2_2004(
-        fyk=fyk, Es=200000.0, ftk=ftk, epsuk=EPSUK, gamma_s=g_s,
-        constitutive_law=branch,
+        fyk=fyk, Es=ES, ftk=ftk, epsuk=p["epsuk"], gamma_s=gamma_s,
+        constitutive_law=p["branch"],
     )
     return concrete, steel
 
 
-c_d, s_d = make_materials("design")
-print(f"design level:  f_cd = {c_d.fcd():.3f} MPa   f_yd = {s_d.fyd():.1f} MPa")
-c_m, s_m = make_materials("mean")
-print(f"mean level:    f_c  = {c_m.fcd():.3f} MPa   f_y  = {s_m.fyd():.1f} MPa")
+def bending_resistance(p, concrete, steel):
+    """M_R [kNm] of the R65 cross-section by strain compatibility, 6.1(2)P.
 
-# %% [markdown]
-# ## 4. Bending resistance — 6.1 with the stress-strain law of 3.1.7
-
-# %%
-def bending_resistance(concrete, steel):
-    """M_Rd [kNm] of the R65 cross-section by strain compatibility, 6.1(2)P."""
+    No lever-arm assumption is made: the neutral axis follows from equilibrium
+    of the parabola-rectangle concrete block against both reinforcement layers.
+    """
+    b, h, d, d2 = p["b"], p["h"], p["d"], p["d2"]
     # define beam cross-section geometry
-    poly = Polygon([(-B / 2, -H / 2), (B / 2, -H / 2), (B / 2, H / 2), (-B / 2, H / 2)])
+    poly = Polygon([(-b / 2, -h / 2), (b / 2, -h / 2), (b / 2, h / 2), (-b / 2, h / 2)])
     geo = SurfaceGeometry(poly=poly, material=concrete)
-    z_bot, z_top = -H / 2 + (H - D), H / 2 - D2
-    # add bending reinforcement bars
-    for y in (-B / 2 + 50.0, B / 2 - 50.0):          # two bars per layer
-        geo = add_reinforcement(geo, (y, z_bot), PHI_BOT, steel)
-        geo = add_reinforcement(geo, (y, z_top), PHI_TOP, steel)
+    z_bot, z_top = -h / 2 + (h - d), h / 2 - d2
+    # add bending reinforcement bars, two per layer
+    for y in (-b / 2 + 50.0, b / 2 - 50.0):
+        geo = add_reinforcement(geo, (y, z_bot), p["phi_bot"], steel)
+        geo = add_reinforcement(geo, (y, z_top), p["phi_top"], steel)
     res = GenericSection(geo).section_calculator.calculate_bending_strength(theta=0, n=0)
     return abs(res.m_y) * KNM
 
 
-M_RD = bending_resistance(c_d, s_d)
-print(f"6.1 + 3.1.7(1)   M_Rd = {M_RD:.2f} kNm   (parabola-rectangle, design level)")
+def self_weight(p):
+    """Self weight of the beam: (g_k [kN/m], M_g [kNm], V_g [kN]).
 
-# %% [markdown]
-# ## 5. Statics of the four-point bending beam
-#
-# Simply supported, span 4.00 m, two point loads `P` at 1.00 m from each support,
-# 0.255 m overhangs. Self weight is a permanent action (γ_G = 1.35); `P` is entered
-# directly as a **design** action, as fib question 6 asks for its design value.
-
-# %%
-G_K = 25.0e-9 * B * H * 1e3        # kN/m, gamma_c = 25 kN/m3 per EN 1991-1-1
-_R = G_K * (SPAN + 2.0 * OVERHANG) / 2e3 # reaction forces as support
-# maximum moment and querkraft 
-M_G = _R * (SPAN / 2e3) - G_K * ((SPAN / 2 + OVERHANG) / 1e3) ** 2 / 2   # kNm, midspan
-V_G = _R - G_K * OVERHANG / 1e3                                          # kN, at support
-
-print(f"g_k = {G_K:.4f} kN/m    M_g = {M_G:.3f} kNm    V_g = {V_G:.3f} kN")
-print(f"a/d = {A_SHEAR / D:.2f}   ->  a_v = {A_SHEAR:.0f} mm {'<' if A_SHEAR < 2 * D else '>='} 2d = {2 * D:.0f} mm")
-
-
-def M_Ed(P_d):
-    """Design moment in the constant-moment region [kNm]."""
-    return GAMMA_G * M_G + P_d * A_SHEAR / 1e3
-
-
-def V_Ed(P_d):
-    """Design shear just inside the support [kN]."""
-    return GAMMA_G * V_G + P_d
-
-
-# main functions to compute P
-def P_from_moment(M_Rd):
-    """compute P_d (design_value) from M_ed=GAMMA_G * M_G +  P_d * A_SHEAR/1e3 <= M_rd """
-    return (M_Rd - GAMMA_G * M_G) / (A_SHEAR / 1e3)
-
-
-def P_from_shear(V_Rd):
-    """compute P_d (design_value) from V_ed=GAMMA_G * V_G +  P_d <= V_rd """
-    return V_Rd - GAMMA_G * V_G
-
-# %% [markdown]
-# ## 6. Shear resistance (6.2.2, 6.2.3) and Q6 — beam as built
-#
-# Both functions take the material objects, exactly like `bending_resistance`, so
-# the same code serves the design level here and the mean level in section 8.
-#
-# **With stirrups, 6.2.3.** `VRds` (eq. 6.8, stirrups yield) rises with cot θ,
-# `VRdmax` (eq. 6.9, struts crush) falls; the resistance is the smaller of the two
-# and is therefore largest where the curves cross. Both library functions validate
-# θ against 21.8°–45°, i.e. exactly the eq. (6.7N) limits 1 ≤ cot θ ≤ 2.5, which is
-# what `THETA_GRID` spans. The longitudinal steel does *not* enter: the truss is a
-# mechanical model and A_sl is its chord, checked separately by eq. (6.18).
-#
-# **Without stirrups, 6.2.2.** Purely empirical, so ρ_l *does* appear explicitly —
-# it stands in for dowel action, crack width and compression-zone depth. Note that
-# C_Rd,c = 0.18/γ_C has 0.18 as a characteristic-level constant, so evaluating this
-# at γ_C = 1 gives a mean-material / characteristic-model hybrid (see section 8).
-
-# %%
-Z = 0.9 * D                     # 6.2.3(1), inner lever arm
-AC = B * H
-ASL = N_BOT * math.pi / 4 * PHI_BOT**2
-# theta within [21.8, 45] deg, from 1 <= cot theta <= 2.5, eq. (6.7N)
-THETA_GRID = [21.8 + i * (45.0 - 21.8) / 400 for i in range(401)]
-
-
-def shear_resistance(concrete, steel, theta_deg=None):
-    """V_Rd of a shear span with stirrups, 6.2.3.
-
-    Returns (V_Rd, V_Rd,s, V_Rd,max, theta) in kN and degrees. theta is chosen to
-    maximise V_Rd over THETA_GRID unless an angle is passed in.
+    Simply supported over ``span`` with an ``overhang`` at each end, so the
+    overhangs relieve the midspan moment and the support shear.
     """
+    g_k = p["gamma_concrete"] * 1e-9 * p["b"] * p["h"] * 1e3        # kN/m
+    span, overhang = p["span"], p["overhang"]
+    reaction = g_k * (span + 2.0 * overhang) / 2e3                  # kN
+    M_g = reaction * (span / 2e3) - g_k * ((span / 2 + overhang) / 1e3) ** 2 / 2
+    V_g = reaction - g_k * overhang / 1e3
+    return g_k, M_g, V_g
+
+
+def P_from_moment(p, M_R, gamma_g):
+    """P [kN] from  M_Ed = gamma_G M_g + P a_shear <= M_R."""
+    _, M_g, _ = self_weight(p)
+    return (M_R - gamma_g * M_g) / (p["a_shear"] / 1e3)
+
+
+def P_from_shear(p, V_R, gamma_g, beta=1.0):
+    """P [kN] from  V_Ed = gamma_G V_g + beta P <= V_R.
+
+    ``beta`` < 1 applies the 6.2.2(6) reduction of the contribution of a point
+    load applied within 2d of the support.
+    """
+    _, _, V_g = self_weight(p)
+    return (V_R - gamma_g * V_g) / beta
+
+
+def shear_resistance(p, concrete, steel, theta_deg=None):
+    """V_R of a shear span WITH stirrups, 6.2.3 (variable strut inclination).
+
+    Returns (V_R, V_R,s, V_R,max, theta) in kN and degrees.
+
+    VRds (eq. 6.8, stirrups yield) rises with cot theta, VRdmax (eq. 6.9,
+    struts crush) falls; the resistance is the smaller of the two and is
+    therefore largest where the two curves cross.  theta is searched over
+    THETA_GRID, i.e. the eq. (6.7N) window, unless an angle is passed in.
+
+    The longitudinal steel does NOT enter: the truss is a mechanical model and
+    A_sl is its chord, checked separately by eq. (6.18).
+    """
+    z = Z_FACTOR * p["d"]
+    ac = p["b"] * p["h"]
+
     def at(theta):
-        v_s = shear.VRds(Asw=ASW, s=S_W, z=Z, theta=theta,
-                         fyk=steel.fyk, gamma_s=steel.gamma_s)          # stirrups yield
-        v_max = shear.VRdmax(bw=B, z=Z, fck=concrete.fck, theta=theta,
-                             NEd=0.0, Ac=AC, fcd=concrete.fcd())        # struts crush
+        v_s = shear.VRds(Asw=p["asw"], s=p["s_w"], z=z, theta=theta,
+                         fyk=steel.fyk, gamma_s=steel.gamma_s)           # stirrups yield
+        v_max = shear.VRdmax(bw=p["b"], z=z, fck=concrete.fck, theta=theta,
+                             NEd=0.0, Ac=ac, fcd=concrete.fcd())         # struts crush
         return min(v_s, v_max) * KN, v_s * KN, v_max * KN
 
-    # get optimal theta within ranges of EC
+    # get optimal theta within the range allowed by EC2
     theta = theta_deg if theta_deg is not None else max(THETA_GRID, key=lambda t: at(t)[0])
     return (*at(theta), theta)
 
 
-def shear_resistance_no_stirrups(concrete):
-    """V_Rd,c without shear reinforcement [kN], 6.2.2(1) eq. (6.2)."""
-    return shear.VRdc(fck=concrete.fck, d=D, Asl=ASL, bw=B, NEd=0.0, Ac=AC,
-                      fcd=concrete.fcd(), k1=0.15, gamma_c=concrete.gamma_c) * KN
+def shear_resistance_no_stirrups(p, concrete):
+    """V_R,c WITHOUT shear reinforcement [kN], 6.2.2(1) eq. (6.2).
+
+    Purely empirical, so the longitudinal ratio rho_l appears explicitly — it
+    stands in for dowel action, crack width and compression-zone depth.
+
+    Note C_Rd,c = 0.18/gamma_C: the 0.18 is itself a characteristic-level
+    constant, so evaluating this at gamma_C = 1 gives a mean-material /
+    characteristic-model hybrid, not a true mean resistance R(x_m).
+    """
+    asl = p["n_bot"] * math.pi / 4 * p["phi_bot"] ** 2
+    return shear.VRdc(fck=concrete.fck, d=p["d"], Asl=asl, bw=p["b"], NEd=0.0,
+                      Ac=p["b"] * p["h"], fcd=concrete.fcd(), k1=K1,
+                      gamma_c=concrete.gamma_c) * KN
 
 
-V_RD, V_RDS, V_RDMAX, THETA_OPT = shear_resistance(c_d, s_d)
+def compute_P(p):
+    """Maximum point load P for one parameter set. Main entry point.
 
-print(f"6.2.3(2) eq.(6.7N)  theta_opt = {THETA_OPT:.2f} deg  ->  cot theta = {1 / math.tan(math.radians(THETA_OPT)):.3f}")
-print(f"6.2.3(3) eq.(6.8)   V_Rd,s   = {V_RDS:.1f} kN")
-print(f"6.2.3(3) eq.(6.9)   V_Rd,max = {V_RDMAX:.1f} kN")
-print(f"                    V_Rd     = {V_RD:.1f} kN")
-print()
+    Returns a dict of the governing load and everything behind it.  At
+    ``level: design`` the actions are factored (gamma_G = 1.35) and P is a
+    design value; at ``level: mean`` the actions are unfactored and P is the
+    calculated mean resistance, directly comparable with the experiment.
+    """
+    concrete, steel = make_materials(p)
+    gamma_g = GAMMA_G if p["level"] == "design" else 1.0
+    g_k, M_g, V_g = self_weight(p)
+    d, b = p["d"], p["b"]
 
-P_BEND = P_from_moment(M_RD)
-P_SHEAR = P_from_shear(V_RD)
-P_Q6 = min(P_BEND, P_SHEAR)
-GOVERNS = "bending" if P_BEND < P_SHEAR else "shear"
+    res = {
+        "level": p["level"], "branch": p["branch"], "case": p["case"],
+        "fck": concrete.fck, "fcd": concrete.fcd(),
+        "fyk": steel.fyk, "fyd": steel.fyd(),
+        "gamma_g": gamma_g, "g_k": g_k, "M_g": M_g, "V_g": V_g,
+        "rho_l": p["n_bot"] * math.pi / 4 * p["phi_bot"] ** 2 / (b * d),
+        "a_over_d": p["a_shear"] / d,
+    }
 
-print(f"P_d from bending  = {P_BEND:.1f} kN")
-print(f"P_d from shear    = {P_SHEAR:.1f} kN")
-print(f"==> Q6:  P_d = {P_Q6:.1f} kN   ({GOVERNS} governs)")
-print(f"         P_k = P_d / {GAMMA_Q} = {P_Q6 / GAMMA_Q:.1f} kN")
-print(f"    check M_Ed = {M_Ed(P_Q6):.1f} kNm <= M_Rd = {M_RD:.1f} kNm")
-print(f"    check V_Ed = {V_Ed(P_Q6):.1f} kN  <= V_Rd = {V_RD:.1f} kN")
+    # bending, 6.1
+    res["M_R"] = bending_resistance(p, concrete, steel)
+    res["P_bending"] = P_from_moment(p, res["M_R"], gamma_g)
 
-# %% [markdown]
-# ## 7. Q7 — stirrups removed from the shear spans (6.2.2)
-#
-# The beam then has no shear reinforcement anywhere (Section B of the fib drawing
-# shows the constant-moment region was already without stirrups).
-#
-# Because a_v < 2d, clause 6.2.2(6) permits the contribution of the point load to
-# be reduced by β = a_v/2d. `a_v` is taken as the support-to-load centre distance,
-# which is conservative — the true clear distance between bearing plate edges is
-# shorter and would give a smaller β.
+    # shear, 6.2.2 or 6.2.3 depending on the case
+    if p["case"] == "with_stirrups":
+        V_R, V_Rs, V_Rmax, theta = shear_resistance(p, concrete, steel)
+        res.update(V_R=V_R, V_Rs=V_Rs, V_Rmax=V_Rmax, theta=theta,
+                   cot_theta=1 / math.tan(math.radians(theta)))
+        res["P_shear"] = P_from_shear(p, V_R, gamma_g)
+    elif p["case"] == "without_stirrups":
+        V_R = shear_resistance_no_stirrups(p, concrete)
+        # 6.2.2(6): a point load closer than 2d to the support may have its
+        # contribution reduced by beta = a_v/2d.  a_v is taken as the
+        # support-to-load centre distance, which is conservative — the clear
+        # distance between the bearing plate edges is shorter.
+        beta = min(p["a_shear"] / (2 * d), 1.0)
+        res.update(V_R=V_R, beta=beta,
+                   V_Ed_limit=shear.VEdmax_unreinf(bw=b, d=d, fck=concrete.fck,
+                                                   fcd=concrete.fcd()) * KN)
+        res["P_shear"] = P_from_shear(p, V_R, gamma_g)
+        res["P_shear_av"] = P_from_shear(p, V_R, gamma_g, beta=beta)
+    else:
+        raise ValueError(f"unknown case {p['case']!r}, expected 'with_stirrups' "
+                         "or 'without_stirrups'")
 
-# %%
-V_RDC = shear_resistance_no_stirrups(c_d)
-V_EDMAX = shear.VEdmax_unreinf(bw=B, d=D, fck=c_d.fck, fcd=c_d.fcd()) * KN
-BETA = A_SHEAR / (2 * D)
-
-P_Q7_PLAIN = P_from_shear(V_RDC)
-P_Q7_BETA = (V_RDC - GAMMA_G * V_G) / BETA
-
-print(f"6.2.2(1) eq.(6.2)   rho_l = {ASL / (B * D):.5f}   V_Rd,c = {V_RDC:.2f} kN")
-print(f"6.2.2(6)            beta  = a_v/2d = {BETA:.4f}")
-print(f"6.2.2(6) eq.(6.5)   limit = {V_EDMAX:.0f} kN   (not governing)")
-print()
-print(f"==> Q7:  P_d = {P_Q7_PLAIN:.1f} kN  (plain 6.2.2)")
-print(f"         P_d = {P_Q7_BETA:.1f} kN  (with the a_v < 2d allowance)")
-print(f"    reduction vs Q6: {100 * (1 - P_Q7_BETA / P_Q6):.0f} % ... {100 * (1 - P_Q7_PLAIN / P_Q6):.0f} %")
-
-# %% [markdown]
-# ## 8. Mean material level vs the experiment
-#
-# Same EC2 equations, γ_M = 1.0 and the measured mean strengths. This separates
-# model bias from safety margin. The horizontal steel branch ignores strain
-# hardening, which for this very under-reinforced section is the dominant effect.
-
-# %%
-print(f"{'steel branch':<26}{'M_R [kNm]':>11}{'P [kN]':>9}{'R_exp/R_calc':>14}")
-for label, br in (("3.2.7(2)b horizontal", "elasticperfectlyplastic"),
-                  ("3.2.7(2)a inclined", "elasticplastic")):
-    m = bending_resistance(*make_materials("mean", br))
-    p = m / (A_SHEAR / 1e3) - M_G          # self weight unfactored at mean level
-    print(f"{label:<26}{m:>11.1f}{p:>9.1f}{R_EXP / p:>14.3f}")
-print(f"\nmeasured R_exp = {R_EXP} kN")
-
-# %% [markdown]
-# ### 8b. Which mode governs at mean level
-#
-# The comparison above is a *bending* comparison, which is only meaningful if the
-# specimen could not have failed in shear first. The same two shear functions,
-# given the mean materials, settle that.
-#
-# The truss (6.2.3) takes mean values cleanly — stirrup yield at f_ym is a real
-# physical event. Two caveats, neither of which matters at this margin:
-#
-# * ν = 0.6(1 − f_ck/250) is a strut *effectiveness* factor calibrated on f_ck, so
-#   substituting f_cm uses the fit outside its calibration rather than taking a mean.
-# * 6.2.2 is worse: C_Rd,c = 0.18/γ_C keeps the characteristic-level constant 0.18
-#   at γ_C = 1, so V_R,c below is mean-material / characteristic-model. EC2 gives no
-#   mean value of that constant and the background documents are not in this repo,
-#   so the figure is reported as a hybrid and labelled as such — not as R(x_m).
-
-# %%
-V_RD_M, V_RDS_M, V_RDMAX_M, THETA_M = shear_resistance(c_m, s_m)
-V_RDC_M = shear_resistance_no_stirrups(c_m)
-P_BEND_M = bending_resistance(*make_materials("mean")) / (A_SHEAR / 1e3) - M_G
-
-print(f"6.2.3  with stirrups   theta_opt = {THETA_M:.2f} deg (cot = {1 / math.tan(math.radians(THETA_M)):.3f})"
-      f"   V_R = {V_RD_M:.1f} kN  ->  P = {V_RD_M - V_G:.1f} kN")
-print(f"6.2.2  no stirrups     rho_l = {ASL / (B * D):.5f}"
-      f"                    V_R,c = {V_RDC_M:.1f} kN  ->  P = {V_RDC_M - V_G:.1f} kN"
-      f"  ({(V_RDC_M - V_G) / BETA:.1f} kN with the a_v < 2d allowance)")
-print(f"6.1    bending (horizontal branch)                             "
-      f"           ->  P = {P_BEND_M:.1f} kN")
-print()
-print(f"as built, bending governs at mean level by {(V_RD_M - V_G) / P_BEND_M:.1f}x"
-      " — the section-8 comparison against R_exp is a flexural one.")
-print("without stirrups the beam would have failed in shear at roughly"
-      f" {V_RDC_M - V_G:.0f}-{(V_RDC_M - V_G) / BETA:.0f} kN, far below R_exp = {R_EXP} kN.")
+    # governing load
+    res["P"] = min(res["P_bending"], res["P_shear"])
+    res["governs"] = "bending" if res["P_bending"] < res["P_shear"] else "shear"
+    if p["level"] == "design":
+        res["P_k"] = res["P"] / GAMMA_Q
+    # comparing against the experiment is only meaningful at mean level: a
+    # design value carries the safety margin the experiment does not know about
+    if p.get("r_exp") and p["level"] == "mean":
+        res["r_exp"] = p["r_exp"]
+        res["r_exp_over_calc"] = p["r_exp"] / res["P"]
+    return res
 
 
+def format_result(res):
+    """Human-readable report of one compute_P result."""
+    L = [f"level = {res['level']}   branch = {res['branch']}   case = {res['case']}",
+         f"  materials      f_ck = {res['fck']:6.2f} MPa   f_cd = {res['fcd']:6.3f} MPa"
+         f"   f_yk = {res['fyk']:6.1f} MPa   f_yd = {res['fyd']:6.1f} MPa",
+         f"  self weight    g_k  = {res['g_k']:.4f} kN/m   M_g = {res['M_g']:.3f} kNm"
+         f"   V_g = {res['V_g']:.3f} kN   (gamma_G = {res['gamma_g']})",
+         f"  6.1            M_R  = {res['M_R']:8.2f} kNm  ->  P = {res['P_bending']:7.1f} kN"]
+    if res["case"] == "with_stirrups":
+        L.append(f"  6.2.3          V_R  = {res['V_R']:8.2f} kN   ->  P = {res['P_shear']:7.1f} kN"
+                 f"   (theta = {res['theta']:.2f} deg, cot = {res['cot_theta']:.3f},"
+                 f" V_R,s = {res['V_Rs']:.1f}, V_R,max = {res['V_Rmax']:.1f} kN)")
+    else:
+        L.append(f"  6.2.2          V_R,c= {res['V_R']:8.2f} kN   ->  P = {res['P_shear']:7.1f} kN"
+                 f"   (rho_l = {res['rho_l']:.5f}, eq. 6.5 limit {res['V_Ed_limit']:.0f} kN)")
+        L.append(f"  6.2.2(6)       a_v < 2d allowance, beta = {res['beta']:.4f}"
+                 f"  ->  P = {res['P_shear_av']:7.1f} kN")
+    L.append(f"  ==>  P = {res['P']:.1f} kN   ({res['governs']} governs)")
+    if "P_k" in res:
+        L.append(f"       P_k = P / {GAMMA_Q} = {res['P_k']:.1f} kN")
+    if "r_exp" in res:
+        L.append(f"       R_exp = {res['r_exp']:.1f} kN  ->  R_exp/R_calc = {res['r_exp_over_calc']:.3f}")
+    return "\n".join(L)
 
+
+if __name__ == "__main__":
+    params_file = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_PARAMS
+    params = load_params(params_file)
+    result = compute_P(params)
+    print(f"fib TG 2.4.3 / R65 — DIN EN 1992-1-1:2011-01   [{params_file}]\n")
+    print(format_result(result))
