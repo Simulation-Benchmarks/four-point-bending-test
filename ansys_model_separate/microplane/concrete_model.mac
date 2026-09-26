@@ -1,0 +1,8 @@
+! Concrete with Microplane approach
+MAT,1
+TB,MPLA,1,,,DPC
+TBDATA,1,R_c,R_b,R_t,Rt,D_MP,sigVc0
+TBDATA,7,R_MP,gamt0,gamc0,betat,betac
+
+TB,MPLA,1,,,NLOCAL
+TBDATA,1,c_MP,m_MP
