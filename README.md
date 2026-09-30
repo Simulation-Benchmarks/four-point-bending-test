@@ -1,3 +1,4 @@
+
 # ANSYS REINF BEAM
 
 Fully parameterized APDL input files for reinforced concrete beam in a 4 point bending setup using two symmetry planes.
@@ -22,3 +23,4 @@ Parameters are split into material parameters (parameters_material.txt) and othe
 ## Post-processing
 
 After running the simulation a text file with results is created. They can be plotted using the auswertung.py script.
+
