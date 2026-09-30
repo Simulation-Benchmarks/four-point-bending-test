@@ -1,3 +1,4 @@
+
 # fibTG243
 
 Eurocode-conform solution of the *fib* TG 2.4.3 test case.
@@ -113,3 +114,4 @@ checks (section 9.2) and no serviceability verifications (7.3, 7.4).
 Run `python R65_study.py`. It prints the two benchmark answers, the mean-level comparison against
 the measured `R_exp = 259.2 kN`, which failure mode governs, and the sensitivity of the answer to
 the assumptions EC2 does not fix — each with the reasoning alongside.
+
