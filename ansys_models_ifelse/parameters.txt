@@ -21,7 +21,7 @@ diam_reinf_lower = 26e-3
 diam_reinf_upper = 10e-3
 diam_reinf_stir = 10e-3
 
-displacement = -0.01
+displacement = -0.007 ! [m]
 
 step_init = 200
 step_max = 20000

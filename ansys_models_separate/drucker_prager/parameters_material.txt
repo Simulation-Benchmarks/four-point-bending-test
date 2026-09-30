@@ -1,0 +1,25 @@
+! ### Concrete - Drucker-Prager (DP) ###
+! DILA dilatation
+del_t = 0.25				! Tensile dilatancy parameter (recommended by dynardo (multiplas): del_t=0.25)
+del_c = 1.0					! Compression dilatancy parameter (recommended by dynardo (multiplas): del_c=1.0)
+! HSD for linear and exp
+omega_ci = 0.33				! Relative stress at onset (=start) of nonlinear hardening (recommended by dynardo (multiplas): O_ci=0.33)
+omega_cr = 0.2				! Residual compressive relative stress (recommended by dynardo (multiplas): omega_cr=0.2)
+omega_tr = 0.1				! Residual tensile relative stress
+kappa_cm = 0.0021-R_c/e_c	! Plastic strain at uniaxial compressive strength (kappa_cm = eps_ml-R_c/E)
+! extra params for HSD6 - linear softening
+kappa_cr = 0.01				! Ultimate effective plastic strain in compression
+		 ! 0.005			! -> play around (the smaller, the quicker the concrete gives up)
+kappa_tr = 0.001			! Plastic strain limit in tension
+! extra params for HSD2 - exponential softening
+omega_cu = 0.85						! Residual relative stress at kappa_cu
+kappa_cu = 0.0035-omega_cu*R_c/e_c	! Plastic strain at transition from power law to exponential softening	(kappa_cu = eps_u-omega_u* R_c/E)
+G_ft = 100							! Mode I area-specific fracture energy [Force/length^2]
+
+! Switch for HSD yes/no
+switch_hsd = 1						! = 0: no HSD
+									! = 1: with HSD
+
+! Switch for picking linear/exp HSD (irrelevat if switch_hsd=0)
+switch_dp = 0						! = 0: HSD2	Drucker-Prager concrete exponential hardening/softening/dilitation (HSD) behavior
+									! = 1: HSD6	Drucker-Prager concrete linear HSD behavior

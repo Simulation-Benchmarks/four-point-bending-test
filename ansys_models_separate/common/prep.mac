@@ -2,7 +2,7 @@ FINISH
 
 /PREP7
 
-! ### Geometry Details ### 
+! ### Geometry Details ###
 ! - use double symmetry
 ! - length axis: x
 ! - height axis: y
@@ -10,7 +10,7 @@ FINISH
 ! - symmetry plane at (x=0,z=0)
 ! - y=0 at the bottom of the beam (concrete bottom)
 
-! ### Volume creation ### 
+! ### Volume creation ###
 ! Create concrete block (complete volume, cut later)
 BLOCK,-length_span/2-length_cant,0,0,height_tot,-depth_tot/2,0
 
@@ -25,10 +25,10 @@ WPROTA,0,90,0					! rotate
 VSBW,all,,delete				! cute and keep
 
 ! ...at upper reinforcement layer
-WPCSYS,9999						
+WPCSYS,9999
 WPOFFS,0,height_tot-height_cover,0
-WPROTA,0,90,0						
-VSBW,all,,delete					
+WPROTA,0,90,0
+VSBW,all,,delete
 
 ! Move WP in z to cut volume...
 ! ...at stirrup position
@@ -49,7 +49,7 @@ WPOFFS,-length_span/2-length_cant+x_stirrup_1+x_stirrup_2,0,0
 WPROTA,0,0,90
 VSBW,all,,delete
 ! ...at stirrup position along length - others with 12cm spacing (+additional cut for last bit of the upper reinforcement)
-*DO,i,1,num_cuts_12cm,1					
+*DO,i,1,num_cuts_12cm,1
 	WPCSYS,9999
 	WPOFFS,-length_span/2-length_cant+x_stirrup_1+x_stirrup_2+x_stirrup_3*i,0,0
 	WPROTA,0,0,90
@@ -75,7 +75,7 @@ CM,volu_load,volu
 
 ALLSEL
 
-! ### Line division for meshing ### 
+! ### Line division for meshing ###
 ! Use specified div length
 LESIZE,all,ele_length
 ALLSEL
@@ -125,17 +125,8 @@ ALLSEL
 CMGRP,line_reinf_stir,line_reinf_stir_v,line_reinf_stir_hl,line_reinf_stir_hu
 
 ! ### Define element types for concrete, reinforcement and others
-! Concrete matrix
-*IF,switch_model,eq,0,then ! DP using SOLID185
-	ET,1,SOLID185						! volume element SOLID185
-	KEYOPT,1,2,0						! full integration
-*ELSEIF,switch_model,eq,1,then ! Microplane using CPT215 
-	ET,1,CPT215							! Coupled-Pore-Pressure-Thermal Mechanical Solid with 2 extra DOFs
-	KEYOPT,1,18,2						! activates the 2 extra DOFs
-*ELSE
-	*MSG,'Unkwon model selected'
-	/EOF
-*ENDIF
+! Concrete matrix - element type is model-specific (see drucker_prager/element.mac, microplane/element.mac)
+/INPUT,../../%MAT_MODEL%/element,mac
 
 ! Reinforcement
 ET,2,LINK180							! link element (no bending/rotation) LINK180
@@ -150,7 +141,7 @@ SECDATA,A_u
 ! Stirrup
 A_s	= PI/4*diam_reinf_stir**2
 SECTYPE,4,link							! cross-section
-SECDATA,A_s	
+SECDATA,A_s
 
 ! Rigid body for support
 ET,5,TARGE170							! target element
@@ -198,7 +189,7 @@ KEYOPT,13,12,5		! Behavior (5 = bonded when inside pinball region)
 
 
 ! ### Read material ###
-/INPUT,'material',mac
+/INPUT,'../../common/material',mac
 
 ! ### Meshing ###
 ! Concrete volume
