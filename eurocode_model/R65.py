@@ -15,7 +15,10 @@ parameter file; everything the Eurocode fixes is a constant in this module.
     python R65.py [params.yaml]
 
 Built on `structuralcodes <https://github.com/fib-international/structuralcodes>`_,
-*fib*'s own EC2 library.  Clause numbers refer to DIN EN 1992-1-1:2011-01.
+*fib*'s own EC2 library.  Clause numbers refer to DIN EN 1992-1-1:2011-01,
+i.e. EN 1992-1-1:2004 + AC:2010 — the edition carried in this repository as
+``DINEN1992-1-1.pdf``.  They are NOT valid for EN 1992-1-1:2023, which
+renumbers the standard (bending 6.1 -> 8.1, shear 6.2 -> 8.2).
 Units are N and mm internally; results are returned in kN and kNm.
 """
 
@@ -77,21 +80,35 @@ def load_params(path=DEFAULT_PARAMS):
 def make_materials(p):
     """Return (concrete, steel) at the safety level requested by ``p``.
 
-    ``level: design`` applies gamma_C = 1.5 / gamma_S = 1.15 to strengths
-    converted from the measured means; ``level: mean`` feeds the measured means
-    with gamma_M = 1.0, which is what gets compared against the experiment.
+    Three levels, differing only in the strengths fed in and in gamma_M:
+
+    ``design``
+        characteristic strengths with gamma_C = 1.5 / gamma_S = 1.15 — the
+        Eurocode design check, R(x_d).
+    ``mean``
+        the measured means with gamma_M = 1.0 — R(x_m), what gets compared
+        against the experiment.
+    ``characteristic``
+        the same characteristic strengths as ``design`` but with gamma_M = 1.0
+        — R(x_k).  Not a Eurocode verification on its own: it exists so that
+        R(x_m)/R(x_k) can be formed, which is the coefficient of variation of
+        the resistance in the ECOV safety format (fib MC2010/MC2020),
+        V_R = ln(R(x_m)/R(x_k)) / 1.645.  See ``R65_study.py`` investigation 4.
     """
     level = p["level"]
-    if level == "design":
+    if level in ("design", "characteristic"):
         fck = p["fcm"] - DELTA_FCK              # Table 3.1
         fyk = p["fym"] / BIAS_STEEL             # ASSUMPTION - not EC2
         ftk = p["fum"] / BIAS_STEEL             # ASSUMPTION - not EC2
-        gamma_c, gamma_s = GAMMA_C, GAMMA_S
+        # gamma_M = 1 at 'characteristic': the partial factors are what the
+        # ECOV replaces with gamma_R, so they must not be applied here as well.
+        gamma_c, gamma_s = ((GAMMA_C, GAMMA_S) if level == "design" else (1.0, 1.0))
     elif level == "mean":
         fck, fyk, ftk = p["fcm"], p["fym"], p["fum"]
         gamma_c, gamma_s = 1.0, 1.0
     else:
-        raise ValueError(f"unknown level {level!r}, expected 'design' or 'mean'")
+        raise ValueError(f"unknown level {level!r}, expected 'design', 'mean' "
+                         "or 'characteristic'")
 
     concrete = ConcreteEC2_2004(
         fck=fck, fctm=p["fctm"], Ecm=p["ecm"], gamma_c=gamma_c,
@@ -156,7 +173,11 @@ def shear_resistance(p, concrete, steel, theta_deg=None):
 
 
 def shear_resistance_no_stirrups(p, concrete):
-    """V_R,c WITHOUT shear reinforcement [kN], 6.2.2(1) eq. (6.2).
+    """V_R,c WITHOUT shear reinforcement [kN], 6.2.2(1) eq. (6.2.a)/(6.2.b).
+
+    The clause gives the empirical expression (6.2.a) together with a floor
+    (6.2.b), ``V_Rd,c = (v_min + k1 sigma_cp) b_w d``; ``structuralcodes.VRdc``
+    returns the larger of the two, so both are covered by the single call below.
 
     Purely empirical, so the longitudinal ratio rho_l appears explicitly — it
     stands in for dowel action, crack width and compression-zone depth.
@@ -209,6 +230,11 @@ def compute_P(p):
     ``level: design`` the actions are factored (gamma_G = 1.35) and P is a
     design value; at ``level: mean`` the actions are unfactored and P is the
     calculated mean resistance, directly comparable with the experiment.
+
+    ``level: characteristic`` also leaves the actions unfactored, because it is
+    a resistance-side quantity only: what it is for is ``M_R``, the numerator of
+    the ECOV ratio.  Its ``P`` is reported for completeness but is not a
+    verification of anything on its own.
     """
     concrete, steel = make_materials(p)
     gamma_g = GAMMA_G if p["level"] == "design" else 1.0
@@ -270,15 +296,15 @@ def format_result(res):
          f"   f_yk = {res['fyk']:6.1f} MPa   f_yd = {res['fyd']:6.1f} MPa",
          f"  self weight    g_k  = {res['g_k']:.4f} kN/m   M_g = {res['M_g']:.3f} kNm"
          f"   V_g = {res['V_g']:.3f} kN   (gamma_G = {res['gamma_g']})",
-         f"  6.1            M_R  = {res['M_R']:8.2f} kNm  ->  P = {res['P_bending']:7.1f} kN"]
+         f"  bending after EC2 6.1            M_R  = {res['M_R']:8.2f} kNm  ->  P = {res['P_bending']:7.1f} kN"]
     if res["case"] == "with_stirrups":
-        L.append(f"  6.2.3          V_R  = {res['V_R']:8.2f} kN   ->  P = {res['P_shear']:7.1f} kN"
+        L.append(f"  shear after EC2 6.2.3          V_R  = {res['V_R']:8.2f} kN   ->  P = {res['P_shear']:7.1f} kN"
                  f"   (theta = {res['theta']:.2f} deg, cot = {res['cot_theta']:.3f},"
                  f" V_R,s = {res['V_Rs']:.1f}, V_R,max = {res['V_Rmax']:.1f} kN)")
     else:
-        L.append(f"  6.2.2          V_R,c= {res['V_R']:8.2f} kN   ->  P = {res['P_shear']:7.1f} kN"
+        L.append(f"  shear after EC2 6.2.2          V_R,c= {res['V_R']:8.2f} kN   ->  P = {res['P_shear']:7.1f} kN"
                  f"   (rho_l = {res['rho_l']:.5f}, eq. 6.5 limit {res['V_Ed_limit']:.0f} kN)")
-        L.append(f"  6.2.2(6)       a_v < 2d allowance, beta = {res['beta']:.4f}"
+        L.append(f"  after EC2 6.2.2(6)       a_v < 2d allowance, beta = {res['beta']:.4f}"
                  f"  ->  P = {res['P_shear_av']:7.1f} kN")
     L.append(f"  ==>  P = {res['P']:.1f} kN   ({res['governs']} governs)")
     if "P_k" in res:
@@ -292,5 +318,6 @@ if __name__ == "__main__":
     params_file = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_PARAMS
     params = load_params(params_file)
     result = compute_P(params)
-    print(f"fib TG 2.4.3 / R65 — DIN EN 1992-1-1:2011-01   [{params_file}]\n")
+    print(f"fib TG 2.4.3 / R65 — DIN EN 1992-1-1:2011-01   [{params_file}]")
+    print("clause numbers below refer to EN 1992-1-1:2004 + AC:2010\n")
     print(format_result(result))
