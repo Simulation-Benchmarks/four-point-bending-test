@@ -1,0 +1,81 @@
+# =====================================================================
+# fib TG 2.4.3 benchmark — specimen R65 (Rüsch & Rehm 1963)
+#
+# Every quantity here comes from the benchmark definition
+# (2026-07_fib_TG243_NLFEA_Example.pdf) or selects a variant of the
+# computation.  Quantities fixed by DIN EN 1992-1-1:2011-01 — partial
+# factors, alpha_cc, C_Rd,c, k1, the cot(theta) limits, E_s, the
+# mean -> characteristic relations — are NOT here; they are constants
+# in R65.py, because they are properties of the code, not of the test.
+#
+#   python R65.py [params.yaml]
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# Geometry
+# ---------------------------------------------------------------------
+b:         300.0     # [mm]  web width
+h:         625.0     # [mm]  overall depth
+d:         587.0     # [mm]  effective depth, centroid of the bottom bars
+d2:         38.5     # [mm]  depth of the top bars below the top fibre
+span:     4000.0     # [mm]  centre-to-centre distance of the two supports
+overhang:  255.0     # [mm]  beam projecting beyond each support
+a_shear:  1000.0     # [mm]  shear span, support to point load
+
+# ---------------------------------------------------------------------
+# Reinforcement
+# ---------------------------------------------------------------------
+phi_bot:    26.0     # [mm]   diameter of the bottom (tension) bars
+n_bot:         2     # [-]    number of bottom bars   -> A_s  = 1062 mm2
+phi_top:    10.0     # [mm]   diameter of the top (compression) bars
+n_top:         2     # [-]    number of top bars      -> A_s2 =  157 mm2
+asw:       157.0     # [mm2]  stirrup area per stirrup section (2 legs Ø10)
+s_w:       120.0     # [mm]   stirrup spacing along the shear span
+
+# ---------------------------------------------------------------------
+# Materials — measured MEAN values of the specimen
+# ---------------------------------------------------------------------
+fcm:     16.71       # [MPa]  mean concrete cylinder compressive strength
+fctm:     1.30       # [MPa]  mean concrete tensile strength
+ecm:  25660.0        # [MPa]  mean secant modulus of the concrete
+fym:    401.0        # [MPa]  mean yield strength of the reinforcement
+fum:    596.0        # [MPa]  mean tensile strength of the reinforcement
+epsuk:    0.10       # [-]    characteristic strain at maximum force.
+                     #        ASSUMED: the data sheet gives only A_10 = 23.1 %,
+                     #        the elongation after fracture, which is not eps_uk.
+                     #        Not reached by this section, but it does set the
+                     #        slope of the inclined branch 3.2.7(2)a.
+
+# Unit weight (Wichte) of the reinforced concrete, for the self weight.
+# NOT to be confused with gamma_C = 1.5, the partial factor for concrete,
+# which is a code constant and lives in R65.py.
+gamma_concrete:  25.0    # [kN/m3]  EN 1991-1-1 Table A.1
+
+# ---------------------------------------------------------------------
+# Variant of the computation
+# ---------------------------------------------------------------------
+#level:   mean                    # [-]  design | mean | characteristic
+#level:   characteristic
+level:   design
+                                   #      design: characteristic strengths / gamma_M,
+                                   #              actions factored (gamma_G = 1.35)
+                                   #      mean:   measured means, gamma_M = 1.0,
+                                   #              actions unfactored — for the
+                                   #              comparison against the experiment
+                                   #      characteristic: characteristic strengths but
+                                   #              gamma_M = 1.0.  Only useful paired with
+                                   #              mean, as the ECOV ratio R(x_m)/R(x_k)
+                                   #              -> V_R.  See R65_study.py section 6.
+
+branch:  elasticperfectlyplastic
+#branch:  elasticplastic            # [-]  elasticperfectlyplastic | elasticplastic
+                                   #      steel law: horizontal top branch 3.2.7(2)b
+                                   #      or inclined branch 3.2.7(2)a with hardening
+case:    with_stirrups             # [-]  with_stirrups | without_stirrups
+                                   #      with_stirrups    -> shear by 6.2.3 (truss)
+                                   #      without_stirrups -> shear by 6.2.2 (empirical)
+
+# ---------------------------------------------------------------------
+# Experiment — reference value, not an input to the computation
+# ---------------------------------------------------------------------
+r_exp:  259.2        # [kN]  measured failure load per point load

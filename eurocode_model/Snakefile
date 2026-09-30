@@ -1,0 +1,29 @@
+"""Run the R65 parameter study.
+
+From anywhere in the repository, with snakemake available (the study itself
+runs in the ``fibtg243`` env, which the rule activates via ``conda run``)::
+
+    conda run -n snakemake_environment snakemake -s eurocode_model/Snakefile --cores 1
+"""
+
+# R65_study.py imports ``eurocode_model.R65``, so it has to run from the
+# repository root as a module — whatever directory snakemake was started in.
+workdir: workflow.basedir + "/.."
+
+
+rule all:
+    input:
+        "eurocode_model/results/q5_P.json",
+
+
+rule r65_study:
+    input:
+        script="eurocode_model/R65_study.py",
+        model="eurocode_model/R65.py",
+        params="eurocode_model/params.yaml",
+    output:
+        q5="eurocode_model/results/q5_P.json",
+    log:
+        "eurocode_model/results/R65_study.log",
+    shell:
+        "conda run -n fibtg243 python -m eurocode_model.R65_study > {log} 2>&1"
