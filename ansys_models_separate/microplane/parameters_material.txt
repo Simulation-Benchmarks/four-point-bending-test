@@ -1,0 +1,11 @@
+! ### Concrete - Microplane (M7) ###
+sigVc0 = -13.368e6!-35e6						! Intersection point abscissa between compression cap and DP yield function [N/m^2]
+R_MP = 2							! Ratio between the major and minor axes of the cap [-] (=R in manual)
+D_MP = 4e4							! Hardening material constant [N^2/m^4] (=D in manual)
+Rt = 1								! Tension cap hardening constant [-]
+gamt0 = 0							! Tension damage threshold [-]
+gamc0 = 2e-5						! Compression damage threshold [-]
+betat = .3e4						! Tension damage evolution constant [-]
+betac = .2e4						! Compression damage evolution constant [-]
+c_MP = 4e-4							! Nonlocal interaction range parameter [m^2]
+m_MP = 2.5								! Over-nonlocal averaging parameter [-]

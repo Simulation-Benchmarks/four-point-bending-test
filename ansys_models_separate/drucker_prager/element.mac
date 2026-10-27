@@ -1,0 +1,3 @@
+! DP concrete element type (SOLID185)
+ET,1,SOLID185						! volume element SOLID185
+KEYOPT,1,2,0						! full integration

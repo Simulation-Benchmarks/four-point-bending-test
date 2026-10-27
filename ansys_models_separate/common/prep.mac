@@ -1,0 +1,343 @@
+FINISH
+
+/PREP7
+
+! ### Geometry Details ###
+! - use double symmetry
+! - length axis: x
+! - height axis: y
+! - width axis: z
+! - symmetry plane at (x=0,z=0)
+! - y=0 at the bottom of the beam (concrete bottom)
+
+! ### Volume creation ###
+! Create concrete block (complete volume, cut later)
+BLOCK,-length_span/2-length_cant,0,0,height_tot,-depth_tot/2,0
+
+! Create working plane for cutting
+CSWPLA,9999,0
+
+! Move WP in y to cut volume...
+! ...at lower reinforcement layer
+WPCSYS,9999						! activate
+WPOFFS,0,height_cover,0			! move
+WPROTA,0,90,0					! rotate
+VSBW,all,,delete				! cute and keep
+
+! ...at upper reinforcement layer
+WPCSYS,9999
+WPOFFS,0,height_tot-height_cover,0
+WPROTA,0,90,0
+VSBW,all,,delete
+
+! Move WP in z to cut volume...
+! ...at stirrup position
+WPCSYS,9999
+WPOFFS,0,0,-depth_tot/2+width_cover
+WPROTA,90,0,0
+VSBW,all,,delete
+
+! Move WP in x to cut volume...
+! ...at stirrup position along length - first after 6cm
+WPCSYS,9999
+WPOFFS,-length_span/2-length_cant+x_stirrup_1,0,0
+WPROTA,0,0,90
+VSBW,all,,delete
+! ...at stirrup position along length - second after 6cm+16,5cm
+WPCSYS,9999
+WPOFFS,-length_span/2-length_cant+x_stirrup_1+x_stirrup_2,0,0
+WPROTA,0,0,90
+VSBW,all,,delete
+! ...at stirrup position along length - others with 12cm spacing (+additional cut for last bit of the upper reinforcement)
+*DO,i,1,num_cuts_12cm,1
+	WPCSYS,9999
+	WPOFFS,-length_span/2-length_cant+x_stirrup_1+x_stirrup_2+x_stirrup_3*i,0,0
+	WPROTA,0,0,90
+	VSBW,all,,delete
+*ENDDO
+ALLSEL
+
+! Create component
+CM,volu_concrete,volu
+
+! Switch back to original csys
+CSYS,0
+WPCSYS,0
+! Create support block
+BLOCK,-length_span/2-width_supp/2,-length_span/2+width_supp/2,-height_supp,0,-depth_tot/2,0
+VSEL,u,,,volu_concrete
+CM,volu_supp,volu
+
+! Create load block
+BLOCK,-length_load-width_load/2,-length_load+width_load/2,height_tot,height_tot+height_load,-depth_tot/2,0
+VSEL,u,,,volu_supp
+CM,volu_load,volu
+
+ALLSEL
+
+! ### Line division for meshing ###
+! Use specified div length
+LESIZE,all,ele_length
+ALLSEL
+
+! ### Start defining components ###
+! lower reinforcement
+LSEL,s,loc,z,-depth_tot/2+width_cover
+LSEL,r,loc,y,height_cover
+CM,line_reinf_lower,line
+ALLSEL
+
+! upper reinforcement (not over the entire length of the beam!)
+LSEL,s,loc,z,-depth_tot/2+width_cover
+LSEL,r,loc,y,height_tot-height_cover
+LSEL,r,loc,x,-length_span/2-length_cant,-length_span/2-length_cant+x_stirrup_1+x_stirrup_2+x_stirrup_3*num_cuts_12cm
+CM,line_reinf_upper,line
+ALLSEL
+
+! stirrup vertical
+LSEL,s,loc,z,-depth_tot/2+width_cover
+LSEL,r,loc,x,-length_span/2-length_cant,-length_span/2-length_cant+x_stirrup_1+x_stirrup_2+x_stirrup_3*(num_cuts_12cm-1)
+LSEL,u,loc,y,0,height_cover
+LSEL,u,loc,y,height_tot-height_cover,height_tot
+LSEL,u,loc,x,-length_span/2-length_cant
+CM,line_reinf_stir_v,line
+ALLSEL
+
+! stirrup horizontal lower
+LSEL,s,loc,y,height_cover
+LSEL,r,loc,x,-length_span/2-length_cant,-length_span/2-length_cant+x_stirrup_1+x_stirrup_2+x_stirrup_3*(num_cuts_12cm-1)
+LSEL,u,loc,z,-depth_tot/2,-depth_tot/2+width_cover
+LSEL,u,loc,z,0
+LSEL,u,loc,x,-length_span/2-length_cant
+CM,line_reinf_stir_hl,line
+ALLSEL
+
+! stirrup horizontal upper
+LSEL,s,loc,y,height_tot-height_cover
+LSEL,r,loc,x,-length_span/2-length_cant,-length_span/2-length_cant+x_stirrup_1+x_stirrup_2+x_stirrup_3*(num_cuts_12cm-1)
+LSEL,u,loc,z,-depth_tot/2,-depth_tot/2+width_cover
+LSEL,u,loc,z,0
+LSEL,u,loc,x,-length_span/2-length_cant
+CM,line_reinf_stir_hu,line
+ALLSEL
+
+! Group stirrup components
+CMGRP,line_reinf_stir,line_reinf_stir_v,line_reinf_stir_hl,line_reinf_stir_hu
+
+! ### Define element types for concrete, reinforcement and others
+! Concrete matrix - element type is model-specific (see drucker_prager/element.mac, microplane/element.mac)
+/INPUT,../../%MAT_MODEL%/element,mac
+
+! Reinforcement
+ET,2,LINK180							! link element (no bending/rotation) LINK180
+! Lower
+A_l	= PI/4*diam_reinf_lower**2
+SECTYPE,2,link							! cross-section
+SECDATA,A_l
+! Upper
+A_u	= PI/4*diam_reinf_upper**2
+SECTYPE,3,link							! cross-section
+SECDATA,A_u
+! Stirrup
+A_s	= PI/4*diam_reinf_stir**2
+SECTYPE,4,link							! cross-section
+SECDATA,A_s
+
+! Rigid body for support
+ET,5,TARGE170							! target element
+KEYOPT,5,2,1							! BC's for rigid target nodes constrained by user
+KEYOPT,5,4,111111						! all DOFs
+R,5
+
+! Rigid body for load
+ET,6,TARGE170							! target element
+KEYOPT,6,2,1							! BC's for rigid target nodes constrained by user
+KEYOPT,6,4,111111						! all DOFs
+R,6
+
+! Contact - CONTA174/TARGE170 element for Support <-> Concrete
+ET,10,TARGE170
+ET,11,CONTA174
+
+R,10
+
+KEYOPT,11,1,0		! UX,UY,UZ DOFs
+KEYOPT,11,2,2		! Contact Algorithm (0 = Augmented Lagrange, 2 = MPC)
+KEYOPT,11,4,0		! Location of Contact Detection (0 = on Gauss point)
+KEYOPT,11,5,0		! No automated contact adjustments
+KEYOPT,11,6,0		! Stiffness variation
+KEYOPT,11,7,0		! allow time incrementation control?
+KEYOPT,11,8,1		! Symmetric contact behavior, same characteristics
+KEYOPT,11,10,0		! Contact Stiffness update
+KEYOPT,11,12,5		! Behavior (5 = bonded when inside pinball region)
+
+! Contact - CONTA174/TARGE170 element for Support <-> Concrete
+ET,12,TARGE170
+ET,13,CONTA174
+
+R,12
+
+KEYOPT,13,1,0		! UX,UY,UZ DOFs
+KEYOPT,13,2,2		! Contact Algorithm (0 = Augmented Lagrange, 2 = MPC)
+KEYOPT,13,4,0		! Location of Contact Detection (0 = on Gauss point)
+KEYOPT,13,5,0		! No automated contact adjustments
+KEYOPT,13,6,0		! Stiffness variation
+KEYOPT,13,7,0		! allow time incrementation control?
+KEYOPT,13,8,1		! Symmetric contact behavior, same characteristics
+KEYOPT,13,10,0		! Contact Stiffness update
+KEYOPT,13,12,5		! Behavior (5 = bonded when inside pinball region)
+
+
+! ### Read material ###
+/INPUT,'../../common/material',mac
+
+! ### Meshing ###
+! Concrete volume
+TYPE,1
+MAT,1
+REAL,1
+
+MSHKEY,1								! mapped meshing
+VSEL,s,,,volu_concrete
+VMESH,all
+ALLSEL
+
+! Support and load plate
+TYPE,1
+MAT,3
+
+MSHKEY,1
+VSEL,u,,,volu_concrete
+VMESH,all
+ALLSEL
+
+! Lower reinforcement
+TYPE,2
+MAT,2
+SECNUM,2
+
+CMSEL,s,line_reinf_lower,line
+LMESH,all
+ALLSEL
+
+! Upper reinforcement
+TYPE,2
+MAT,2
+SECNUM,3
+
+CMSEL,s,line_reinf_upper,line
+LMESH,all
+ALLSEL
+
+! Stirrup reinforcement
+TYPE,2
+MAT,2
+SECNUM,4
+
+CMSEL,s,line_reinf_stir,line
+LMESH,all
+ALLSEL
+
+! ### Merge all nodes at identical positions ###
+CMSEL,u,volu_supp,volu
+CMSEL,u,volu_load,volu
+NSLV,s
+NUMMRG,node
+ALLSEL
+
+! ### Contacts ###
+! Support <-> Concrete
+! Support gets CONTA174, Concrete gets TARGE170
+CMSEL,s,volu_supp
+ASLV,s
+ASEL,r,loc,y,0
+
+TYPE,11
+REAL,10
+NSLA,s,1
+ESURF		! put elements to the top of the support volume
+ALLSEL
+
+CMSEL,s,volu_concrete
+ASLV,s
+ASEL,r,loc,y,0
+
+TYPE,10
+REAL,10
+NSLA,s,1
+ESURF		! put elements to the bottom of the entire concrete block
+ALLSEL
+
+! Load <-> Concrete
+! Load gets CONTA174, Concrete gets TARGE170
+CMSEL,s,volu_load
+ASLV,s
+ASEL,r,loc,y,height_tot
+
+TYPE,13
+REAL,12
+NSLA,s,1
+ESURF		! put elements to the top of the support volume
+ALLSEL
+
+CMSEL,s,volu_concrete
+ASLV,s
+ASEL,r,loc,y,height_tot
+
+TYPE,12
+REAL,12
+NSLA,s,1
+ESURF		! put elements to the bottom of the entire concrete block
+
+! Fix display, add translucency for concrete
+/ESHAPE,1
+ESEL,s,TYPE,,1
+/TRLCY,elem,0.5
+ALLSEL
+/VIEW,1,1,1,1
+/ANGLE,1
+/AUTO,1
+/REPLOT
+
+! ### Pilot node for support
+! Rigid body
+TYPE,5									! TYPE = 5 is set (Target)
+REAL,5									! REAL = 5 is set (for rigid body)
+
+N,,-length_span/2,-height_supp,0		! z was depth_tot/4 for middle of the area, z=0 equals true middle in the symmetry plane
+*GET,node_support,node,0,num,max
+NSEL,s,loc,y,-height_supp
+ESLN
+ESURF
+ALLSEL
+
+TSHAP,pilo
+! *GET,node_support,node,0,num,max
+E,node_support
+ALLSEL
+
+! ### Pilot node for load
+! Rigid body
+TYPE,6									! TYPE = 5 is set (Target)
+REAL,6									! REAL = 5 is set (for rigid body)
+
+N,,-length_load,height_tot+height_load,0		! z was depth_tot/4 for middle of the area, z=0 equals true middle in the symmetry plane
+*GET,node_load,node,0,num,max
+NSEL,s,loc,y,height_tot+height_load
+ESLN
+ESURF
+ALLSEL
+
+TSHAP,pilo
+! *GET,node_support,node,0,num,max
+E,node_load
+ALLSEL
+
+SAVE,prep_%filname%,db,,all
+
+
+! /EOF
+
+
+
+

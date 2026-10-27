@@ -1,0 +1,26 @@
+! ### Concrete ###
+! Concrete linear
+MP,EX,1,e_c
+MP,PRXY,1,nu_c
+
+! Concrete strength model - model-specific (see drucker_prager/concrete_model.mac, microplane/concrete_model.mac)
+/INPUT,../../%MAT_MODEL%/concrete_model,mac
+
+! ### Reinforcement ###
+! Steel linear
+MP,EX,2,e_reinf
+MP,PRXY,2,nu_reinf
+
+! Steel nonlinear
+MAT,2
+TB,MISO,2,1,2
+TBPT,DEFI,eps_ry,sig_ry
+TBPT,DEFI,eps_ru,sig_ru
+	!/axlab,X,Strain (/)				! For display
+	!/axlab,Y,Stress (N/m^2)
+	!TBPLOT,MISO,2
+
+! ### Support and load plates ###
+! Steel linear
+MP,EX,3,e_supp
+MP,PRXY,3,nu_supp

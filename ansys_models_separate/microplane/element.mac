@@ -1,0 +1,3 @@
+! Microplane concrete element type (CPT215, 2 extra pore-pressure/thermal DOFs)
+ET,1,CPT215							! Coupled-Pore-Pressure-Thermal Mechanical Solid with 2 extra DOFs
+KEYOPT,1,18,2						! activates the 2 extra DOFs

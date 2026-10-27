@@ -1,0 +1,18 @@
+/COM,ANSYS RELEASE 2023 R1           BUILD 23.1      UP20221128       12:54:12
+
+ *** WARNING ***                         CP =       1.438   TIME= 12:54:16
+ Overconstraint may occur for Lagrange multiplier or MPC based contact   
+ algorithm.                                                              
+
+ *** WARNING ***                         CP =       1.438   TIME= 12:54:16
+ Boundary conditions, coupling, and/or constraint equations have been    
+ applied on certain contact nodes (for example 3848).                    
+
+ *** WARNING ***                         CP =       1.547   TIME= 12:54:16
+ Multiple constraints have been applied on degree of freedom 3 of        
+ contact node 3795.  The program will remove certain internal MPCs.      
+ Please check the model carefully.                                       
+
+ *** WARNING ***                         CP =       1.547   TIME= 12:54:16
+ Or use relaxation option (target element KEYOPT(11) = 1) to overcome    
+ the over-constraint.                                                    

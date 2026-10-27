@@ -1,0 +1,2 @@
+# Valid values: "drucker_prager" or "microplane" (must match a subdirectory name)
+model: drucker_prager
