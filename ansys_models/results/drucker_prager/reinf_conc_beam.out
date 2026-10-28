@@ -1,0 +1,310 @@
+
+ Ansys Mechanical Enterprise Academic Research     
+
+
+ *------------------------------------------------------------------*
+ |                                                                  |
+ |   W E L C O M E   T O   T H E   A N S Y S (R)  P R O G R A M     |
+ |                                                                  |
+ *------------------------------------------------------------------*
+
+
+
+
+ ***************************************************************
+ *         ANSYS MAPDL 2023 R1          LEGAL NOTICES          *
+ ***************************************************************
+ *                                                             *
+ * Copyright 1971-2023 Ansys, Inc.  All rights reserved.       *
+ * Unauthorized use, distribution or duplication is            *
+ * prohibited.                                                 *
+ *                                                             *
+ * Ansys is a registered trademark of Ansys, Inc. or its       *
+ * subsidiaries in the United States or other countries.       *
+ * See the Ansys, Inc. online documentation or the Ansys, Inc. *
+ * documentation CD or online help for the complete Legal      *
+ * Notice.                                                     *
+ *                                                             *
+ ***************************************************************
+ *                                                             *
+ * THIS ANSYS SOFTWARE PRODUCT AND PROGRAM DOCUMENTATION       *
+ * INCLUDE TRADE SECRETS AND CONFIDENTIAL AND PROPRIETARY      *
+ * PRODUCTS OF ANSYS, INC., ITS SUBSIDIARIES, OR LICENSORS.    *
+ * The software products and documentation are furnished by    *
+ * Ansys, Inc. or its subsidiaries under a software license    *
+ * agreement that contains provisions concerning               *
+ * non-disclosure, copying, length and nature of use,          *
+ * compliance with exporting laws, warranties, disclaimers,    *
+ * limitations of liability, and remedies, and other           *
+ * provisions.  The software products and documentation may be *
+ * used, disclosed, transferred, or copied only in accordance  *
+ * with the terms and conditions of that software license      *
+ * agreement.                                                  *
+ *                                                             *
+ * Ansys, Inc. is a UL registered                              *
+ * ISO 9001:2015 company.                                      *
+ *                                                             *
+ ***************************************************************
+ *                                                             *
+ * This product is subject to U.S. laws governing export and   *
+ * re-export.                                                  *
+ *                                                             *
+ * For U.S. Government users, except as specifically granted   *
+ * by the Ansys, Inc. software license agreement, the use,     *
+ * duplication, or disclosure by the United States Government  *
+ * is subject to restrictions stated in the Ansys, Inc.        *
+ * software license agreement and FAR 12.212 (for non-DOD      *
+ * licenses).                                                  *
+ *                                                             *
+ ***************************************************************
+
+ 2023 R1 
+     
+ Point Releases and Patches installed:   
+     
+ Discovery 2023 R1   
+ SpaceClaim 2023 R1  
+ Ansys Sherlock 2023 R1  
+ Autodyn 2023 R1 
+ LS-DYNA 2023 R1 
+ CFD-Post only 2023 R1   
+ CFX (includes CFD-Post) 2023 R1 
+ Chemkin 2023 R1 
+ EnSight 2023 R1 
+ FENSAP-ICE 2023 R1  
+ Fluent (includes CFD-Post) 2023 R1  
+ Polyflow (includes CFD-Post) 2023 R1
+ Forte (includes EnSight) 2023 R1
+ TurboGrid 2023 R1   
+ ICEM CFD 2023 R1
+ Motion 2023 R1  
+ Aqwa 2023 R1
+ Speos 2023 R1   
+ Speos HPC 2023 R1   
+ Speos for NX 2023 R1
+ optiSLang 2023 R1   
+ Additive 2023 R1
+ Customization Files for User Programmable Features 2023 R1  
+ Mechanical Products 2023 R1 
+ Material Calibration App 2023 R1
+ Icepak (includes CFD-Post) 2023 R1  
+ Remote Solve Manager Standalone Services 2023 R1
+ Ansys Sound - SAS 2023 R1   
+ Viewer 2023 R1  
+ ACIS Geometry Interface 2023 R1 
+ AutoCAD Geometry Interface 2023 R1  
+ Catia, Version 4 Geometry Interface 2023 R1 
+ Catia, Version 5 Geometry Interface 2023 R1 
+ Catia, Version 6 Geometry Interface 2023 R1 
+ Creo Elements/Direct Modeling Geometry Interface 2023 R1
+ Creo Parametric Geometry Interface 2023 R1  
+ Inventor Geometry Interface 2023 R1 
+ JTOpen Geometry Interface 2023 R1   
+ NX Geometry Interface 2023 R1   
+ Parasolid Geometry Interface  2023 R1   
+ Solid Edge Geometry Interface 2023 R1   
+ SOLIDWORKS Geometry Interface 2023 R1   
+
+
+          *****  MAPDL COMMAND LINE ARGUMENTS  *****
+  INITIAL JOBNAME              = REINF_CONC_BEAM                                                                                                                                                                                                                                         
+  BATCH MODE REQUESTED (-b)    = LIST
+  INPUT FILE COPY MODE (-c)    = COPY
+       1 PARALLEL PROCESSES REQUESTED WITH SINGLE THREAD PER PROCESS
+    TOTAL OF     1 CORES REQUESTED
+  INPUT FILE NAME              = C:\Users\dtyagi\four-point-bending-test\ansys_models_json\results\drucker_prager\input.mac
+  OUTPUT FILE NAME             = C:\Users\dtyagi\four-point-bending-test\ansys_models_json\results\drucker_prager\REINF_CONC_BEAM.out
+  INITIAL DIRECTORY = C:\Users\dtyagi\four-point-bending-test\ansys_models_json\results\drucker_prager
+
+ RELEASE= 2023 R1              BUILD= 23.1      UP20221128   VERSION=WINDOWS x64 
+ CURRENT JOBNAME=REINF_CONC_BEAM  15:28:47  OCT 28, 2026 CP=      0.141
+
+     1  /CLEAR  
+     2  FINISH  
+     3      
+     4  ! Set filenames 
+     5  filname = 'REINF_CONC_BEAM' 
+     6  /FILNAME, filname   
+     7  /OUTPUT,output,txt  
+     8      
+     9  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    10  ! Rendered by Snakemake (rule render_input) from common/input.mac.j2,   
+    11  ! common/parameters.json and drucker_prager/parameters.json. Do not edit by hand.   
+    12  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    13      
+    14  ! Model selection - prep.mac and material.mac substitute %MAT_MODEL% into a subdirectory name   
+    15  MAT_MODEL = 'drucker_prager'
+    16      
+    17  PI = acos(-1)   
+    18      
+    19  ! ### Input parameters (from JSON) ###  
+    20  ! --- geometry ---  
+    21  length_span = 4 
+    22  length_cant = 0.255 
+    23  length_load = 1 
+    24  height_tot = 0.625  
+    25  depth_tot = 0.30
+    26  height_cover = 0.0385   
+    27  width_cover = 0.0385
+    28  width_supp = 0.3
+    29  width_load = 0.2
+    30  height_load = 0.05  
+    31  height_supp = 0.05  
+    32  x_stirrup_1 = 0.06  
+    33  x_stirrup_2 = 0.165 
+    34  x_stirrup_3 = 0.12  
+    35  num_cuts_12cm = 10  
+    36  ! --- mesh ---  
+    37  ele_length = 0.05   
+    38  ! --- reinforcement --- 
+    39  diam_reinf_lower = 26e-3
+    40  diam_reinf_upper = 10e-3
+    41  diam_reinf_stir = 10e-3 
+    42  ! --- loading ---   
+    43  displacement = -0.007   
+    44  ! --- solver ---
+    45  step_init = 200 
+    46  step_max = 20000
+    47  step_min = 25   
+    48  ! --- reinforcement_steel ---   
+    49  e_reinf = 2.05e11   
+    50  nu_reinf = 0.3  
+    51  sig_ry = 401.00e6   
+    52  sig_ru = 596.00e6   
+    53  eps_ru = 0.231  
+    54  ! --- plate_steel ---   
+    55  e_supp = 2.1e11 
+    56  nu_supp = 0.3   
+    57  ! --- concrete ---  
+    58  e_c = 25660e6   
+    59  nu_c = 0.2  
+    60  sig_cc = 16.71e6
+    61  sig_ct = 1.30e6 
+    62  ! --- dilatation ---
+    63  del_t = 0.25
+    64  del_c = 1.0 
+    65  ! --- hsd ---   
+    66  omega_ci = 0.33 
+    67  omega_cr = 0.2  
+    68  omega_tr = 0.1  
+    69  kappa_cr = 0.01 
+    70  kappa_tr = 0.001
+    71  omega_cu = 0.85 
+    72  G_ft = 100  
+    73  ! --- switches ---  
+    74  switch_hsd = 1  
+    75  switch_dp = 0   
+    76      
+    77  ! ### Derived parameters ###
+    78  eps_ry = sig_ry/e_reinf		! reinforcement yield strain [-]   
+    79  ! DP strength parameters (also consumed by the Microplane TBDATA call)  
+    80  R_c	= sig_cc				! Uniaxial compressive strength 
+    81  R_t	= sig_ct				! Uniaxial tensile strength (recommended by dynardo (multiplas): R_t=0.1*R_c for normal concrete)   
+    82  R_b	= 1.2*R_c				! Biaxial compressive strength (recommended by dynardo (multiplas): R_b=1.2*R_c for normal concrete)   
+    83      
+    84  ! Start pre-processing  
+    85  /INPUT,../../common/prep,mac
+    86      
+    87  ! Start solution
+    88  /INPUT,../../common/solution,mac
+    89      
+    90  ! Start post-processing 
+    91  /INPUT,../../common/post,mac
+
+ RUN SETUP PROCEDURE FROM FILE= C:\Program Files\ANSYS Inc\v231\ANSYS\apdl\start.ans
+
+ /INPUT FILE= C:\Program Files\ANSYS Inc\v231\ANSYS\apdl\start.ans  LINE=       0
+
+ CLEAR DATABASE AND RERUN START.ANS
+
+ RUN SETUP PROCEDURE FROM FILE= C:\Program Files\ANSYS Inc\v231\ANSYS\apdl\start.ans
+
+ Ansys Mechanical Enterprise Academic Research     
+
+ /INPUT FILE= C:\Program Files\ANSYS Inc\v231\ANSYS\apdl\start.ans  LINE=       0
+
+ PARAMETER FILNAME = REINF_CONC_BEAM 
+
+ CURRENT JOBNAME REDEFINED AS REINF_CONC_BEAM
+
+ /OUTPUT FILE= output.txt
+
+
+ NUMBER OF WARNING MESSAGES ENCOUNTERED=          4
+ NUMBER OF ERROR   MESSAGES ENCOUNTERED=          0
+
+
+
+ ***** PROBLEM TERMINATED BY INDICATED ERROR(S) OR BY END OF INPUT DATA *****
+
++--------------------- M A P D L   S T A T I S T I C S ------------------------+
+
+Release: 2023 R1            Build: 23.1       Update: UP20221128   Platform: WINDOWS x64 
+Date Run: 10/28/2026   Time: 15:55     Process ID: 15540
+Operating System: Windows 11  (Build: 26200)
+
+Processor Model: AMD EPYC 74F3 24-Core Processor
+
+Compiler: Intel(R) Fortran Compiler Version 19.0.5  (Build: 20190815)
+          Intel(R) C/C++ Compiler Version 19.0.5  (Build: 20190815)
+          Intel(R) Math Kernel Library Version 2020.0.0 Product Build 20191125
+          BLAS Library supplied by AMD BLIS
+
+Number of machines requested            :    1
+Total number of cores available         :    4
+Number of physical cores available      :    4
+Number of processes requested           :    1
+Number of threads per process requested :    1
+Total number of cores requested         :    1 (Shared Memory Parallel)                    
+
+GPU Acceleration: Not Requested
+
+Job Name: REINF_CONC_BEAM
+Input File: C:\Users\dtyagi\four-point-bending-test\ansys_models_json\results\drucker_prager\input.mac
+Working Directory: C:\Users\dtyagi\four-point-bending-test\ansys_models_json\results\drucker_prager
+
+Total CPU time for main thread                    :     1477.2 seconds
+Total CPU time summed for all threads             :     1477.3 seconds
+
+Elapsed time spent obtaining a license            :        1.9 seconds
+Elapsed time spent pre-processing model (/PREP7)  :        1.2 seconds
+Elapsed time spent solution - preprocessing       :        0.0 seconds
+Elapsed time spent computing solution             :     1602.5 seconds
+Elapsed time spent solution - postprocessing      :        0.0 seconds
+Elapsed time spent post-processing model (/POST1) :        0.0 seconds
+ 
+Equation solver used                              :            Sparse (unsymmetric)
+Equation solver computational rate                :       17.9 Gflops
+Equation solver effective I/O rate                :        6.5 GB/sec
+
+Sum of memory used on all processes               :      186.0 MB
+Sum of memory allocated on all processes          :     2112.0 MB
+Physical memory available                         :         32 GB
+
+Total amount of I/O written to disk               :       31.9 GB
+Total amount of I/O read from disk                :       38.5 GB
+
++------------------ E N D   M A P D L   S T A T I S T I C S -------------------+
+
+
+ *-----------------------------------------------------------------------------*
+ |                                                                             |
+ |                               RUN COMPLETED                                 |
+ |                                                                             |
+ |-----------------------------------------------------------------------------|
+ |                                                                             |
+ |  Ansys MAPDL 2023 R1         Build 23.1         UP20221128    WINDOWS x64   |
+ |                                                                             |
+ |-----------------------------------------------------------------------------|
+ |                                                                             |
+ |  Database Requested(-db)     1024 MB     Scratch Memory Requested   1024 MB |
+ |  Max Database Used(Master)     27 MB     Max Scratch Used(Master)    159 MB |
+ |  Max Database Used(Workers)     0 MB     Max Scratch Used(Workers)     0 MB |
+ |  Sum Database Used(All)        27 MB     Sum Scratch Used(All)       159 MB |
+ |                                                                             |
+ |-----------------------------------------------------------------------------|
+ |                                                                             |
+ |        CP Time      (sec) =       1477.328       Time  =  15:55:35          |
+ |        Elapsed Time (sec) =       1611.000       Date  =  10/28/2026        |
+ |                                                                             |
+ *-----------------------------------------------------------------------------*

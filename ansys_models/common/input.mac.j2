@@ -1,0 +1,41 @@
+/CLEAR
+FINISH
+
+! Set filenames
+filname = 'REINF_CONC_BEAM'
+/FILNAME, filname
+/OUTPUT,output,txt
+
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! Rendered by Snakemake (rule render_input) from common/input.mac.j2,
+! common/parameters.json and {{ model }}/parameters.json. Do not edit by hand.
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+! Model selection - prep.mac and material.mac substitute %MAT_MODEL% into a subdirectory name
+MAT_MODEL = '{{ model }}'
+
+PI = acos(-1)
+
+! ### Input parameters (from JSON) ###
+{% for group, params in parameters.items() %}
+! --- {{ group }} ---
+{% for name, value in params.items() %}
+{{ name }} = {{ value }}
+{% endfor %}
+{% endfor %}
+
+! ### Derived parameters ###
+eps_ry = sig_ry/e_reinf		! reinforcement yield strain [-]
+! DP strength parameters (also consumed by the Microplane TBDATA call)
+R_c	= sig_cc				! Uniaxial compressive strength
+R_t	= sig_ct				! Uniaxial tensile strength (recommended by dynardo (multiplas): R_t=0.1*R_c for normal concrete)
+R_b	= 1.2*R_c				! Biaxial compressive strength (recommended by dynardo (multiplas): R_b=1.2*R_c for normal concrete)
+
+! Start pre-processing
+/INPUT,../../common/prep,mac
+
+! Start solution
+/INPUT,../../common/solution,mac
+
+! Start post-processing
+/INPUT,../../common/post,mac

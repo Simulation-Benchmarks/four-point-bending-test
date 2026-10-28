@@ -1,0 +1,131 @@
+import json
+import re
+import subprocess
+from pathlib import Path
+
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
+from snakemake.logging import logger
+
+ANSYS_EXE = "C:/Program Files/ANSYS Inc/v231/ansys/bin/winx64/ANSYS231.exe"
+JOBNAME = "REINF_CONC_BEAM"
+
+configfile: "config.yaml"
+
+_VALID_MODELS = ("drucker_prager", "microplane")
+MODEL = config.get("model")
+if MODEL not in _VALID_MODELS:
+    raise ValueError(f"config['model'] must be one of {_VALID_MODELS}, got {MODEL!r}")
+
+ANSYS_MODELS_DIR = Path(workflow.basedir)
+RESULTS_DIR = ANSYS_MODELS_DIR / "results" / MODEL
+
+# JSON keys are "name[unit]" (use [-] for dimensionless); only "name" reaches APDL
+_KEY = re.compile(r"^([A-Za-z][A-Za-z0-9_]{0,31})\[([^\[\]]+)\]$")
+
+
+def load_parameters(*json_paths):
+    """Merge grouped {group: {"name[unit]": value}} JSON files into one ordered {group: {name: literal}} dict.
+
+    Values are kept as their literal JSON text (e.g. "2.05e11", not 205000000000.0): APDL may parse
+    differently written literals of the same number to values differing in the last bit, which a
+    softening nonlinear analysis amplifies into a different solution path.
+    """
+    merged = {}
+    defined_in = {}
+    for path in json_paths:
+        text = Path(path).read_text()
+        literals = json.loads(text, parse_float=str, parse_int=str)
+        for group, params in json.loads(text).items():
+            if not isinstance(params, dict):
+                raise ValueError(f"{path}: group {group!r} must be an object of name[unit]: value pairs")
+            if group in merged:
+                raise ValueError(f"{path}: group {group!r} is already defined in another parameter file")
+            merged[group] = {}
+            for key, value in params.items():
+                match = _KEY.match(key)
+                if not match:
+                    raise ValueError(
+                        f"{path}: key {key!r} must look like name[unit] with a valid APDL name, "
+                        f"use [-] for dimensionless"
+                    )
+                name = match.group(1)
+                if isinstance(value, bool) or not isinstance(value, (int, float)):
+                    raise ValueError(f"{path}: {key!r} must be a number, got {value!r}")
+                if name.lower() in defined_in:  # APDL names are case-insensitive
+                    raise ValueError(f"{path}: {name!r} is already defined in {defined_in[name.lower()]}")
+                defined_in[name.lower()] = path
+                merged[group][name] = literals[group][key]
+    return merged
+
+
+rule all:
+    input:
+        f"results/{MODEL}/prep_{JOBNAME}.db",
+        f"results/{MODEL}/{JOBNAME}.txt",
+
+rule render_input:
+    input:
+        template="common/input.mac.j2",
+        common_params="common/parameters.json",
+        model_params=f"{MODEL}/parameters.json",
+    params:
+        model=MODEL,
+    output:
+        f"results/{MODEL}/input.mac",
+    run:
+        parameters = load_parameters(input.common_params, input.model_params)
+        env = Environment(
+            loader=FileSystemLoader(ANSYS_MODELS_DIR / "common"),
+            undefined=StrictUndefined,
+            trim_blocks=True,
+            lstrip_blocks=True,
+            keep_trailing_newline=True,
+        )
+        rendered = env.get_template(Path(input.template).name).render(model=params.model, parameters=parameters)
+        Path(output[0]).write_text(rendered)
+
+rule run_ansys:
+    input:
+        f"results/{MODEL}/input.mac",
+        "common/prep.mac",
+        "common/material.mac",
+        "common/solution.mac",
+        "common/post.mac",
+        f"{MODEL}/element.mac",
+        f"{MODEL}/concrete_model.mac",
+
+    output:
+        f"results/{MODEL}/{JOBNAME.lower()}.out",
+        f"results/{MODEL}/prep_{JOBNAME}.db",
+        f"results/{MODEL}/output.txt",
+        f"results/{MODEL}/{JOBNAME}.txt",
+
+    run:
+        argv = [
+            ANSYS_EXE,
+            "-b",
+            "-np", "1",
+            "-j", JOBNAME,
+            "-dir", str(RESULTS_DIR),
+            "-i", str(RESULTS_DIR / "input.mac"),
+            "-o", f"{JOBNAME}.out",
+        ]
+        result = subprocess.run(argv, cwd=RESULTS_DIR) #check=True temporarily removed to allow for non-zero exit codes (WARNINGS) to be ignored.
+
+        out_path = RESULTS_DIR / "output.txt"
+        if not out_path.exists():
+            raise RuntimeError(
+                f"ANSYS did not produce output.txt (exit code {result.returncode}), "
+                f"see {RESULTS_DIR / f'{JOBNAME}.out'}"
+            )
+
+        # ANSYS writes the message counts at the end of the .out file
+        ansys_out_path = RESULTS_DIR / f"{JOBNAME}.out"
+        out_text = ansys_out_path.read_text(errors="replace") if ansys_out_path.exists() else ""
+        counts = dict(re.findall(r"NUMBER OF (WARNING|ERROR)\s+MESSAGES ENCOUNTERED=\s*(\d+)", out_text))
+        if not counts:
+            logger.warning(f"ANSYS message summary not found in {ansys_out_path}")
+        elif any(int(n) > 0 for n in counts.values()):
+            logger.warning(
+                f"ANSYS reported {counts.get('WARNING', '?')} warning(s) and {counts.get('ERROR', '?')} error(s)."
+            )

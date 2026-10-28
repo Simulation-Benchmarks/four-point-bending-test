@@ -6,19 +6,20 @@ Fully parameterized APDL input files for reinforced concrete beam in a 4 point b
 
 Two different model types
 
-* 1: concrete with Drucker-Prager material model (and SOLID185 elements)
-* 2: concrete with Microplane material model (and CPT215 elements)
+* `drucker_prager`: concrete with Drucker-Prager material model (and SOLID185 elements)
+* `microplane`: concrete with Microplane material model (and CPT215 elements)
 
 The simulation is displacement-controlled: displacement is applied at the loading
-points, ramping up to the maximum displacement given by the `displacement`
-parameter in `parameters.txt` (e.g. `displacement = -0.001 ! [m]`), and the run
-continues until that target displacement is reached or the solver fails to
-converge.
+points, ramping up to the maximum displacement given by `"displacement[m]"` in
+`ansys_models/common/parameters.json`, and the run continues until that target
+displacement is reached or the solver fails to converge.
 
 ### Input/Output
 
-* Input: material parameters (`parameters_material.txt`).
-* Output: Force and vertical displacement at the loading point, vertical displacement at the midspan of the beam, stored in `results/<model_type>/REINF_CONC_BEAM.txt`.
+* Input: geometry, mesh, loading, solver and material parameters from JSON files
+  (`ansys_models/common/parameters.json` and `ansys_models/<model>/parameters.json`,
+  see [Parameter files](#parameter-files)).
+* Output: Force and vertical displacement at the loading point, vertical displacement at the midspan of the beam, stored in `ansys_models/results/<model>/REINF_CONC_BEAM.txt`.
   This is a whitespace-delimited text table with a header line
   `--Kraft [N]--  --u_y Pilot [m]--  u_y Mitte [m]` followed by one row per
   load substep, with three columns: applied force [N], pilot-node
@@ -27,115 +28,83 @@ converge.
 
 ## Running
 
-The workflow can be run either manually through ANSYS, or driven by Snakemake.
-
-### Manual
-
-Open ANSYS Mechanical APDL Product Launcher, pick this folder, execute the input.mac file.
-
-### Snakemake
-
-First set up the `snakemake` conda environment (see `environment_snakemake.yml`):
+First set up the `snakemake_environment` conda environment (snakemake + Jinja2, see `environment_snakemake.yml`):
 
 ```
 conda env create -f environment_snakemake.yml
-conda activate snakemake
+conda activate snakemake_environment
 ```
 
-Then, from within one of the model-selection implementations
-(`ansys_model_ifelse/` or `ansys_model_separate/`), run:
+Then, from within `ansys_models/`, run:
 
 ```
-cd ansys_model_ifelse
-snakemake --cores 1
-# or override the model:
-snakemake --cores 1 --config model=microplane
+cd ansys_models
+python run_benchmark.py                   # drucker_prager
+python run_benchmark.py --model microplane
+python run_benchmark.py --model both
 ```
 
-(equivalently for `ansys_model_separate`).
+Or call snakemake directly, e.g. `snakemake --cores 1 --config model=microplane`
+(the default model is set in `config.yaml`).
+To render only the input file (no ANSYS run):
+`snakemake results/<model>/input.mac --cores 1 --config model=<model>`.
+The rendered `results/<model>/input.mac` can also be run manually in ANSYS from
+within `results/<model>/`.
 
-## Model-selection implementations (experimental, for comparison)
+The path to the ANSYS executable is set by `ANSYS_EXE` in `ansys_models/Snakefile`.
 
-`ansys_model_ifelse/` and `ansys_model_separate/` are two parallel, independently
-runnable implementations of Snakemake-driven Drucker-Prager/Microplane model
-selection:
+## Workflow
 
-* `ansys_model_ifelse/` keeps the original `*IF/*ELSEIF` branching in `prep.mac`/
-  `material.mac`, but the `switch_model` value is now supplied by Snakemake
-  (`config.yaml`'s `model` key, overridable with `snakemake --config model=microplane`)
-  instead of being hand-edited in `parameters_material.txt`.
-* `ansys_model_separate/` splits the model-specific APDL logic into separate
-  subdirectories: `common/` (shared scripts: `input.mac`, `prep.mac`,
-  `material.mac`, `solution.mac`, `post.mac`, `auswertung.py`, plus the
-  shared `parameters.txt`/`parameters_material.txt`), and `drucker_prager/`/
-  `microplane/` (each with its own `element.mac`, `concrete_model.mac`,
-  `parameters_material.txt`). `Snakefile`, `config.yaml`, and
-  `environment_plot.yml` stay at the `ansys_model_separate/` root. Which
-  subdirectory is used is selected via an APDL character parameter
-  (`MAT_MODEL`, set to `drucker_prager` or `microplane` — matching the
-  subdirectory name directly) driven by `config.yaml`'s `model` key. Both
-  directories use `drucker_prager`/`microplane` as their model names,
-  though the two implementations aren't required to share a naming
-  convention.
+`common/input.mac.j2` is a Jinja template, and Snakemake renders the JSON values into it
+to create the ANSYS entry point `results/<model>/input.mac`. No intermediate parameter
+files are written.
 
-### `ansys_model_ifelse/` files
+1. `render_input`: merges `common/parameters.json` with `<model>/parameters.json` and
+   validates the result: keys must be `name[unit]` with a valid APDL name, values must be
+   numbers, and no name may be defined twice. It then renders `common/input.mac.j2` into
+   `results/<model>/input.mac`.
+2. `run_ansys`: runs ANSYS in batch mode on the rendered `input.mac` inside
+   `results/<model>/`. It `/INPUT`s `common/prep.mac`, `solution.mac` and `post.mac`.
+   `prep.mac` and `material.mac` pull in `<model>/element.mac` and
+   `<model>/concrete_model.mac` through `%MAT_MODEL%`.
 
-* `Snakefile` — Snakemake workflow: validates `config.yaml`'s `model`, writes
-  the numeric `switch_model` into `model_select.mac`, then runs ANSYS in batch
-  mode on `input.mac`.
-* `config.yaml` — Snakemake config (`model: drucker_prager|microplane`).
-* `input.mac` — ANSYS entry point; `/INPUT`s `model_select.mac`,
-  `parameters.txt`, `parameters_material.txt`, `prep.mac`, `solution.mac`,
-  `post.mac` in order.
-* `model_select.mac` — auto-generated by Snakemake; sets the integer
-  `switch_model` variable.
-* `parameters.txt` — geometry/mesh/loading parameters (spans, cover, mesh
-  size, displacement, substep limits).
-* `parameters_material.txt` — material constants; `*IF,switch_model,eq,0/1`
-  branches between Drucker-Prager and Microplane parameter sets.
-* `prep.mac` — builds geometry/mesh; `*IF,switch_model` picks the SOLID185 vs
-  CPT215 element; `/INPUT`s `material.mac`.
-* `material.mac` — `*IF/*ELSEIF/*ELSE` branches to build the Drucker-Prager
-  (with nested HSD2/HSD6 logic) or Microplane concrete material, plus shared
-  steel/plate materials.
-* `solution.mac` — nonlinear static solve (NLGEOM), boundary/symmetry
-  conditions, `SOLVE`.
-* `post.mac` — extracts reaction force and displacements per substep, writes
-  `REINF_CONC_BEAM.txt`.
+The rendered `input.mac` records every parameter value used in that run.
 
-### `ansys_model_separate/` files
+## Parameter files
 
-* `Snakefile` — Snakemake workflow: selects a model *subdirectory* (string),
-  writes `MAT_MODEL='<model>'` into `common/model_select.mac`.
-* `config.yaml` — Snakemake config; `model` key must match a subdirectory
-  name.
-* `common/input.mac` — ANSYS entry point; `/INPUT`s `model_select.mac`, the
-  shared `parameters.txt`/`parameters_material.txt`, then the selected
-  subdirectory's `parameters_material.txt` (path built from `%MAT_MODEL%`),
-  then `prep.mac`, `solution.mac`, `post.mac`.
-* `common/model_select.mac` — auto-generated; sets the string `MAT_MODEL`
-  used to build `/INPUT` paths (path-based dispatch instead of `*IF`).
-* `common/parameters.txt` — same geometry/mesh/loading parameters as in
-  `ansys_model_ifelse/`.
-* `common/parameters_material.txt` — only model-agnostic shared constants
-  (steel, plate, concrete elastic/strength values); no branching.
-* `common/prep.mac` — same geometry/meshing logic; delegates the element-type
-  definition to `%MAT_MODEL%/element.mac` and the material to `material.mac`.
-* `common/material.mac` — defines shared steel/plate materials; delegates the
-  concrete constitutive model to `%MAT_MODEL%/concrete_model.mac`.
-* `common/solution.mac` / `common/post.mac` — identical solve and
-  result-extraction logic to `ansys_model_ifelse/`.
-* `common/auswertung.py` — Python helper for plotting/post-processing results
-  outside ANSYS (not part of the ANSYS run itself).
-* `drucker_prager/element.mac` — defines the SOLID185 element type for the DP
-  concrete.
-* `drucker_prager/concrete_model.mac` — builds `TB,CONCR,...,DP` plus the
-  nested HSD2/HSD6 hardening-softening logic.
-* `drucker_prager/parameters_material.txt` — DP-specific parameters
-  (dilatancy, HSD constants, switches).
-* `microplane/element.mac` — defines the CPT215 element type (extra
-  pore-pressure DOFs) for the microplane model.
-* `microplane/concrete_model.mac` — builds `TB,MPLA,...,DPC` and `NLOCAL`
-  table data.
-* `microplane/parameters_material.txt` — microplane-specific constants
-  (cap/damage/nonlocal parameters).
+Each JSON file is `{group: {"name[unit]": value}}`, for example `"length_span[m]": 4`.
+Units are SI. Dimensionless parameters use `[-]`. The `[unit]` part only documents the
+value: it is stripped before rendering, so `name` becomes the APDL scalar parameter. Group
+names become comments in the rendered file. Derived quantities stay in APDL: `eps_ry`, `R_c`,
+`R_t` and `R_b` are in `input.mac.j2`, and `kappa_cm` and `kappa_cu` are in
+`drucker_prager/concrete_model.mac`.
+
+`drucker_prager/parameters.json` switches:
+- `switch_hsd`: 0 means no HSD, 1 means with HSD.
+- `switch_dp` (only used when `switch_hsd` = 1): 0 means HSD2 (exponential), 1 means HSD6 (linear).
+
+## Repository layout
+
+```
+environment_snakemake.yml     conda environment (snakemake + Jinja2)
+ansys_models/
+  Snakefile                   workflow: render_input, run_ansys
+  config.yaml                 default model (drucker_prager | microplane)
+  run_benchmark.py            runs the workflow for one or both models
+  common/
+    input.mac.j2              Jinja template for the ANSYS entry point
+    parameters.json           shared geometry/mesh/loading/solver/material parameters
+    prep.mac                  geometry and mesh, element type from <model>/element.mac
+    material.mac              steel/plate materials, concrete from <model>/concrete_model.mac
+    solution.mac              boundary/symmetry conditions, nonlinear static solve
+    post.mac                  writes force/displacements per substep to REINF_CONC_BEAM.txt
+  drucker_prager/
+    parameters.json           Drucker-Prager parameters and switches
+    element.mac               SOLID185 element type
+    concrete_model.mac        TB,CONCR,...,DP with HSD2/HSD6 hardening-softening
+  microplane/
+    parameters.json           Microplane parameters
+    element.mac               CPT215 element type
+    concrete_model.mac        TB,MPLA,...,DPC and NLOCAL data
+  results/<model>/            rendered input.mac and ANSYS output
+```

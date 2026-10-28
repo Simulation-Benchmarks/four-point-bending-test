@@ -1,0 +1,52 @@
+{
+  "geometry": {
+    "length_span[m]": 4,
+    "length_cant[m]": 0.255,
+    "length_load[m]": 1,
+    "height_tot[m]": 0.625,
+    "depth_tot[m]": 0.30,
+    "height_cover[m]": 0.0385,
+    "width_cover[m]": 0.0385,
+    "width_supp[m]": 0.3,
+    "width_load[m]": 0.2,
+    "height_load[m]": 0.05,
+    "height_supp[m]": 0.05,
+    "x_stirrup_1[m]": 0.06,
+    "x_stirrup_2[m]": 0.165,
+    "x_stirrup_3[m]": 0.12,
+    "num_cuts_12cm[-]": 10
+  },
+  "mesh": {
+    "ele_length[m]": 0.05
+  },
+  "reinforcement": {
+    "diam_reinf_lower[m]": 26e-3,
+    "diam_reinf_upper[m]": 10e-3,
+    "diam_reinf_stir[m]": 10e-3
+  },
+  "loading": {
+    "displacement[m]": -0.007
+  },
+  "solver": {
+    "step_init[-]": 200,
+    "step_max[-]": 20000,
+    "step_min[-]": 25
+  },
+  "reinforcement_steel": {
+    "e_reinf[N/m^2]": 2.05e11,
+    "nu_reinf[-]": 0.3,
+    "sig_ry[N/m^2]": 401.00e6,
+    "sig_ru[N/m^2]": 596.00e6,
+    "eps_ru[-]": 0.231
+  },
+  "plate_steel": {
+    "e_supp[N/m^2]": 2.1e11,
+    "nu_supp[-]": 0.3
+  },
+  "concrete": {
+    "e_c[N/m^2]": 25660e6,
+    "nu_c[-]": 0.2,
+    "sig_cc[N/m^2]": 16.71e6,
+    "sig_ct[N/m^2]": 1.30e6
+  }
+}
