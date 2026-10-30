@@ -1,0 +1,11 @@
+{
+  "materials": {
+    "epsuk[-]": 0.10,
+    "gamma_concrete[kN/m^3]": 25.0
+  },
+  "variant": {
+    "level[-]": "design",
+    "branch[-]": "elasticperfectlyplastic",
+    "case[-]": "with_stirrups"
+  }
+}

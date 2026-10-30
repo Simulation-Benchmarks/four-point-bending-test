@@ -1,0 +1,6 @@
+{
+  "load_carrying_capacity_elasticperfectlyplastic [kN]": 224.79493068468463,
+  "load_carrying_capacity_elasticplastic [kN]": 243.2404757776901,
+  "max_load_1e-6_p_f_stirrups [kN]": 158.95492311401955,
+  "max_load_1e-6_p_f_no_stirrups [kN]": 45.51712773350246
+}
