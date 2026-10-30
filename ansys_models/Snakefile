@@ -26,6 +26,9 @@ _KEY = re.compile(r"^([A-Za-z][A-Za-z0-9_]{0,31})\[([^\[\]]+)\]$")
 def load_parameters(*json_paths):
     """Merge grouped {group: {"name[unit]": value}} JSON files into one ordered {group: {name: literal}} dict.
 
+    A group may appear in several files (e.g. "concrete" in the benchmark and the ANSYS file); its
+    parameters are merged, but each parameter name may be defined only once across all files.
+
     Values are kept as their literal JSON text (e.g. "2.05e11", not 205000000000.0): APDL may parse
     differently written literals of the same number to values differing in the last bit, which a
     softening nonlinear analysis amplifies into a different solution path.
@@ -38,9 +41,7 @@ def load_parameters(*json_paths):
         for group, params in json.loads(text).items():
             if not isinstance(params, dict):
                 raise ValueError(f"{path}: group {group!r} must be an object of name[unit]: value pairs")
-            if group in merged:
-                raise ValueError(f"{path}: group {group!r} is already defined in another parameter file")
-            merged[group] = {}
+            merged.setdefault(group, {})
             for key, value in params.items():
                 match = _KEY.match(key)
                 if not match:
@@ -66,6 +67,7 @@ rule all:
 rule render_input:
     input:
         template="common/input.mac.j2",
+        benchmark_params=str(ANSYS_MODELS_DIR.parent / "parameters.json"),
         common_params="common/parameters.json",
         model_params=f"{MODEL}/parameters.json",
     params:
@@ -73,7 +75,7 @@ rule render_input:
     output:
         f"results/{MODEL}/input.mac",
     run:
-        parameters = load_parameters(input.common_params, input.model_params)
+        parameters = load_parameters(input.benchmark_params, input.common_params, input.model_params)
         env = Environment(
             loader=FileSystemLoader(ANSYS_MODELS_DIR / "common"),
             undefined=StrictUndefined,

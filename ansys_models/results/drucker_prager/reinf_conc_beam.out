@@ -112,12 +112,12 @@
   INPUT FILE COPY MODE (-c)    = COPY
        1 PARALLEL PROCESSES REQUESTED WITH SINGLE THREAD PER PROCESS
     TOTAL OF     1 CORES REQUESTED
-  INPUT FILE NAME              = C:\Users\dtyagi\four-point-bending-test\ansys_models_json\results\drucker_prager\input.mac
-  OUTPUT FILE NAME             = C:\Users\dtyagi\four-point-bending-test\ansys_models_json\results\drucker_prager\REINF_CONC_BEAM.out
-  INITIAL DIRECTORY = C:\Users\dtyagi\four-point-bending-test\ansys_models_json\results\drucker_prager
+  INPUT FILE NAME              = C:\Users\dtyagi\four-point-bending-test\ansys_models\results\drucker_prager\input.mac
+  OUTPUT FILE NAME             = C:\Users\dtyagi\four-point-bending-test\ansys_models\results\drucker_prager\REINF_CONC_BEAM.out
+  INITIAL DIRECTORY = C:\Users\dtyagi\four-point-bending-test\ansys_models\results\drucker_prager
 
  RELEASE= 2023 R1              BUILD= 23.1      UP20221128   VERSION=WINDOWS x64 
- CURRENT JOBNAME=REINF_CONC_BEAM  15:28:47  OCT 28, 2026 CP=      0.141
+ CURRENT JOBNAME=REINF_CONC_BEAM  15:01:56  OCT 30, 2026 CP=      0.156
 
      1  /CLEAR  
      2  FINISH  
@@ -129,87 +129,92 @@
      8      
      9  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     10  ! Rendered by Snakemake (rule render_input) from common/input.mac.j2,   
-    11  ! common/parameters.json and drucker_prager/parameters.json. Do not edit by hand.   
-    12  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    13      
-    14  ! Model selection - prep.mac and material.mac substitute %MAT_MODEL% into a subdirectory name   
-    15  MAT_MODEL = 'drucker_prager'
-    16      
-    17  PI = acos(-1)   
-    18      
-    19  ! ### Input parameters (from JSON) ###  
-    20  ! --- geometry ---  
-    21  length_span = 4 
-    22  length_cant = 0.255 
-    23  length_load = 1 
-    24  height_tot = 0.625  
-    25  depth_tot = 0.30
-    26  height_cover = 0.0385   
-    27  width_cover = 0.0385
-    28  width_supp = 0.3
-    29  width_load = 0.2
-    30  height_load = 0.05  
-    31  height_supp = 0.05  
-    32  x_stirrup_1 = 0.06  
-    33  x_stirrup_2 = 0.165 
-    34  x_stirrup_3 = 0.12  
-    35  num_cuts_12cm = 10  
-    36  ! --- mesh ---  
-    37  ele_length = 0.05   
+    11  ! ../parameters.json (benchmark data), common/parameters.json and   
+    12  ! drucker_prager/parameters.json. Do not edit by hand.  
+    13  ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    14      
+    15  ! Model selection - prep.mac and material.mac substitute %MAT_MODEL% into a subdirectory name   
+    16  MAT_MODEL = 'drucker_prager'
+    17      
+    18  PI = acos(-1)   
+    19      
+    20  ! ### Input parameters (from JSON) ###  
+    21  ! --- geometry ---  
+    22  length_span = 4 
+    23  length_cant = 0.255 
+    24  length_load = 1 
+    25  height_tot = 0.625  
+    26  depth_tot = 0.30
+    27  d_eff = 0.587   
+    28  x_stirrup_1 = 0.06  
+    29  x_stirrup_2 = 0.165 
+    30  x_stirrup_3 = 0.12  
+    31  height_cover = 0.0385   
+    32  width_cover = 0.0385
+    33  width_supp = 0.3
+    34  width_load = 0.2
+    35  height_load = 0.05  
+    36  height_supp = 0.05  
+    37  num_cuts_12cm = 10  
     38  ! --- reinforcement --- 
     39  diam_reinf_lower = 26e-3
-    40  diam_reinf_upper = 10e-3
-    41  diam_reinf_stir = 10e-3 
-    42  ! --- loading ---   
-    43  displacement = -0.007   
-    44  ! --- solver ---
-    45  step_init = 200 
-    46  step_max = 20000
-    47  step_min = 25   
-    48  ! --- reinforcement_steel ---   
+    40  n_reinf_lower = 2   
+    41  diam_reinf_upper = 10e-3
+    42  n_reinf_upper = 2   
+    43  diam_reinf_stir = 10e-3 
+    44  n_legs_stir = 2 
+    45  ! --- reinforcement_steel ---   
+    46  sig_ry = 401.00e6   
+    47  sig_ru = 596.00e6   
+    48  eps_ru = 0.231  
     49  e_reinf = 2.05e11   
     50  nu_reinf = 0.3  
-    51  sig_ry = 401.00e6   
-    52  sig_ru = 596.00e6   
-    53  eps_ru = 0.231  
-    54  ! --- plate_steel ---   
-    55  e_supp = 2.1e11 
-    56  nu_supp = 0.3   
-    57  ! --- concrete ---  
-    58  e_c = 25660e6   
-    59  nu_c = 0.2  
-    60  sig_cc = 16.71e6
-    61  sig_ct = 1.30e6 
-    62  ! --- dilatation ---
-    63  del_t = 0.25
-    64  del_c = 1.0 
-    65  ! --- hsd ---   
-    66  omega_ci = 0.33 
-    67  omega_cr = 0.2  
-    68  omega_tr = 0.1  
-    69  kappa_cr = 0.01 
-    70  kappa_tr = 0.001
-    71  omega_cu = 0.85 
-    72  G_ft = 100  
-    73  ! --- switches ---  
-    74  switch_hsd = 1  
-    75  switch_dp = 0   
-    76      
-    77  ! ### Derived parameters ###
-    78  eps_ry = sig_ry/e_reinf		! reinforcement yield strain [-]   
-    79  ! DP strength parameters (also consumed by the Microplane TBDATA call)  
-    80  R_c	= sig_cc				! Uniaxial compressive strength 
-    81  R_t	= sig_ct				! Uniaxial tensile strength (recommended by dynardo (multiplas): R_t=0.1*R_c for normal concrete)   
-    82  R_b	= 1.2*R_c				! Biaxial compressive strength (recommended by dynardo (multiplas): R_b=1.2*R_c for normal concrete)   
-    83      
-    84  ! Start pre-processing  
-    85  /INPUT,../../common/prep,mac
-    86      
-    87  ! Start solution
-    88  /INPUT,../../common/solution,mac
-    89      
-    90  ! Start post-processing 
-    91  /INPUT,../../common/post,mac
+    51  ! --- concrete ---  
+    52  e_c = 25660e6   
+    53  sig_cc = 16.71e6
+    54  sig_ct = 1.30e6 
+    55  nu_c = 0.2  
+    56  ! --- mesh ---  
+    57  ele_length = 0.05   
+    58  ! --- loading ---   
+    59  displacement = -0.007   
+    60  ! --- solver ---
+    61  step_init = 200 
+    62  step_max = 20000
+    63  step_min = 25   
+    64  ! --- plate_steel ---   
+    65  e_supp = 2.1e11 
+    66  nu_supp = 0.3   
+    67  ! --- dilatation ---
+    68  del_t = 0.25
+    69  del_c = 1.0 
+    70  ! --- hsd ---   
+    71  omega_ci = 0.33 
+    72  omega_cr = 0.2  
+    73  omega_tr = 0.1  
+    74  kappa_cr = 0.01 
+    75  kappa_tr = 0.001
+    76  omega_cu = 0.85 
+    77  G_ft = 100  
+    78  ! --- switches ---  
+    79  switch_hsd = 1  
+    80  switch_dp = 0   
+    81      
+    82  ! ### Derived parameters ###
+    83  eps_ry = sig_ry/e_reinf		! reinforcement yield strain [-]   
+    84  ! DP strength parameters (also consumed by the Microplane TBDATA call)  
+    85  R_c	= sig_cc				! Uniaxial compressive strength 
+    86  R_t	= sig_ct				! Uniaxial tensile strength (recommended by dynardo (multiplas): R_t=0.1*R_c for normal concrete)   
+    87  R_b	= 1.2*R_c				! Biaxial compressive strength (recommended by dynardo (multiplas): R_b=1.2*R_c for normal concrete)   
+    88      
+    89  ! Start pre-processing  
+    90  /INPUT,../../common/prep,mac
+    91      
+    92  ! Start solution
+    93  /INPUT,../../common/solution,mac
+    94      
+    95  ! Start post-processing 
+    96  /INPUT,../../common/post,mac
 
  RUN SETUP PROCEDURE FROM FILE= C:\Program Files\ANSYS Inc\v231\ANSYS\apdl\start.ans
 
@@ -240,7 +245,7 @@
 +--------------------- M A P D L   S T A T I S T I C S ------------------------+
 
 Release: 2023 R1            Build: 23.1       Update: UP20221128   Platform: WINDOWS x64 
-Date Run: 10/28/2026   Time: 15:55     Process ID: 15540
+Date Run: 10/30/2026   Time: 15:32     Process ID: 12788
 Operating System: Windows 11  (Build: 26200)
 
 Processor Model: AMD EPYC 74F3 24-Core Processor
@@ -260,22 +265,22 @@ Total number of cores requested         :    1 (Shared Memory Parallel)
 GPU Acceleration: Not Requested
 
 Job Name: REINF_CONC_BEAM
-Input File: C:\Users\dtyagi\four-point-bending-test\ansys_models_json\results\drucker_prager\input.mac
-Working Directory: C:\Users\dtyagi\four-point-bending-test\ansys_models_json\results\drucker_prager
+Input File: C:\Users\dtyagi\four-point-bending-test\ansys_models\results\drucker_prager\input.mac
+Working Directory: C:\Users\dtyagi\four-point-bending-test\ansys_models\results\drucker_prager
 
-Total CPU time for main thread                    :     1477.2 seconds
-Total CPU time summed for all threads             :     1477.3 seconds
+Total CPU time for main thread                    :     1649.7 seconds
+Total CPU time summed for all threads             :     1649.9 seconds
 
-Elapsed time spent obtaining a license            :        1.9 seconds
-Elapsed time spent pre-processing model (/PREP7)  :        1.2 seconds
+Elapsed time spent obtaining a license            :        2.4 seconds
+Elapsed time spent pre-processing model (/PREP7)  :        1.4 seconds
 Elapsed time spent solution - preprocessing       :        0.0 seconds
-Elapsed time spent computing solution             :     1602.5 seconds
+Elapsed time spent computing solution             :     1841.1 seconds
 Elapsed time spent solution - postprocessing      :        0.0 seconds
 Elapsed time spent post-processing model (/POST1) :        0.0 seconds
  
 Equation solver used                              :            Sparse (unsymmetric)
-Equation solver computational rate                :       17.9 Gflops
-Equation solver effective I/O rate                :        6.5 GB/sec
+Equation solver computational rate                :       16.8 Gflops
+Equation solver effective I/O rate                :        6.6 GB/sec
 
 Sum of memory used on all processes               :      186.0 MB
 Sum of memory allocated on all processes          :     2112.0 MB
@@ -304,7 +309,7 @@ Total amount of I/O read from disk                :       38.5 GB
  |                                                                             |
  |-----------------------------------------------------------------------------|
  |                                                                             |
- |        CP Time      (sec) =       1477.328       Time  =  15:55:35          |
- |        Elapsed Time (sec) =       1611.000       Date  =  10/28/2026        |
+ |        CP Time      (sec) =       1649.906       Time  =  15:32:46          |
+ |        Elapsed Time (sec) =       1853.000       Date  =  10/30/2026        |
  |                                                                             |
  *-----------------------------------------------------------------------------*

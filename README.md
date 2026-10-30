@@ -1,110 +1,67 @@
-# ANSYS REINF BEAM
+# REINF BEAM 4 POINT BENDING
 
-Fully parameterized APDL input files for reinforced concrete beam in a 4 point bending setup using two symmetry planes.
+Benchmark of a reinforced concrete beam in a 4 point bending setup. The ANSYS models use
+fully parameterized APDL input files and two symmetry planes.
 
 ## Model
 
-Two different model types
+Three different model types
 
-* `drucker_prager`: concrete with Drucker-Prager material model (and SOLID185 elements)
-* `microplane`: concrete with Microplane material model (and CPT215 elements)
+* `drucker_prager`: ANSYS, concrete with Drucker-Prager material model (and SOLID185 elements)
+* `microplane`: ANSYS, concrete with Microplane material model (and CPT215 elements)
+* `eurocode`: TODO: description
 
-The simulation is displacement-controlled: displacement is applied at the loading
-points, ramping up to the maximum displacement given by `"displacement[m]"` in
-`ansys_models/common/parameters.json`, and the run continues until that target
-displacement is reached or the solver fails to converge.
+## Benchmark parameters
 
-### Input/Output
+`parameters.json` holds the benchmark data shared by all model types. The file is
+`{group: {"name[unit]": value}}`, for example `"length_span[m]": 4`. Units are SI.
+Dimensionless parameters use `[-]`.
 
-* Input: geometry, mesh, loading, solver and material parameters from JSON files
-  (`ansys_models/common/parameters.json` and `ansys_models/<model>/parameters.json`,
-  see [Parameter files](#parameter-files)).
-* Output: Force and vertical displacement at the loading point, vertical displacement at the midspan of the beam, stored in `ansys_models/results/<model>/REINF_CONC_BEAM.txt`.
-  This is a whitespace-delimited text table with a header line
-  `--Kraft [N]--  --u_y Pilot [m]--  u_y Mitte [m]` followed by one row per
-  load substep, with three columns: applied force [N], pilot-node
-  displacement [m], and midspan displacement [m] (`u_y Mitte` = deflection at
-  midspan).
+`geometry`:
 
-## Running
+| Parameter | Unit | Description |
+|---|---|---|
+| `length_span` | m | span between the support centres |
+| `length_cant` | m | overhang of the beam beyond the support centre |
+| `length_load` | m | distance from midspan to the loading point |
+| `height_tot` | m | total height of the beam |
+| `depth_tot` | m | total width of the beam |
+| `d_eff` | m | effective depth (top fibre to lower reinforcement) |
+| `height_cover` | m | vertical distance from the top/bottom surface to the longitudinal bar axis |
+| `width_cover` | m | lateral distance from the side surface to the longitudinal bar axis |
+| `width_supp` | m | width of the support plate along the span |
+| `width_load` | m | width of the loading plate along the span |
+| `x_stirrup_1` | m | distance from the beam end to the first stirrup |
+| `x_stirrup_2` | m | distance from the first to the second stirrup |
+| `x_stirrup_3` | m | regular stirrup spacing after the second stirrup |
 
-First set up the `snakemake_environment` conda environment (snakemake + Jinja2, see `environment_snakemake.yml`):
+`reinforcement`:
 
-```
-conda env create -f environment_snakemake.yml
-conda activate snakemake_environment
-```
+| Parameter | Unit | Description |
+|---|---|---|
+| `diam_reinf_lower` | m | diameter of the lower longitudinal bars |
+| `n_reinf_lower` | - | number of lower longitudinal bars |
+| `diam_reinf_upper` | m | diameter of the upper longitudinal bars |
+| `n_reinf_upper` | - | number of upper longitudinal bars |
+| `diam_reinf_stir` | m | stirrup diameter |
+| `n_legs_stir` | - | number of stirrup legs |
 
-Then, from within `ansys_models/`, run:
+`reinforcement_steel`:
 
-```
-cd ansys_models
-python run_benchmark.py                   # drucker_prager
-python run_benchmark.py --model microplane
-python run_benchmark.py --model both
-```
+| Parameter | Unit | Description |
+|---|---|---|
+| `sig_ry` | N/m^2 | yield strength |
+| `sig_ru` | N/m^2 | ultimate strength |
+| `eps_ru` | - | strain at ultimate strength |
 
-Or call snakemake directly, e.g. `snakemake --cores 1 --config model=microplane`
-(the default model is set in `config.yaml`).
-To render only the input file (no ANSYS run):
-`snakemake results/<model>/input.mac --cores 1 --config model=<model>`.
-The rendered `results/<model>/input.mac` can also be run manually in ANSYS from
-within `results/<model>/`.
+`concrete`:
 
-The path to the ANSYS executable is set by `ANSYS_EXE` in `ansys_models/Snakefile`.
+| Parameter | Unit | Description |
+|---|---|---|
+| `e_c` | N/m^2 | Young's modulus |
+| `sig_cc` | N/m^2 | uniaxial compressive strength |
+| `sig_ct` | N/m^2 | uniaxial tensile strength |
 
-## Workflow
-
-`common/input.mac.j2` is a Jinja template, and Snakemake renders the JSON values into it
-to create the ANSYS entry point `results/<model>/input.mac`. No intermediate parameter
-files are written.
-
-1. `render_input`: merges `common/parameters.json` with `<model>/parameters.json` and
-   validates the result: keys must be `name[unit]` with a valid APDL name, values must be
-   numbers, and no name may be defined twice. It then renders `common/input.mac.j2` into
-   `results/<model>/input.mac`.
-2. `run_ansys`: runs ANSYS in batch mode on the rendered `input.mac` inside
-   `results/<model>/`. It `/INPUT`s `common/prep.mac`, `solution.mac` and `post.mac`.
-   `prep.mac` and `material.mac` pull in `<model>/element.mac` and
-   `<model>/concrete_model.mac` through `%MAT_MODEL%`.
-
-The rendered `input.mac` records every parameter value used in that run.
-
-## Parameter files
-
-Each JSON file is `{group: {"name[unit]": value}}`, for example `"length_span[m]": 4`.
-Units are SI. Dimensionless parameters use `[-]`. The `[unit]` part only documents the
-value: it is stripped before rendering, so `name` becomes the APDL scalar parameter. Group
-names become comments in the rendered file. Derived quantities stay in APDL: `eps_ry`, `R_c`,
-`R_t` and `R_b` are in `input.mac.j2`, and `kappa_cm` and `kappa_cu` are in
-`drucker_prager/concrete_model.mac`.
-
-`drucker_prager/parameters.json` switches:
-- `switch_hsd`: 0 means no HSD, 1 means with HSD.
-- `switch_dp` (only used when `switch_hsd` = 1): 0 means HSD2 (exponential), 1 means HSD6 (linear).
-
-## Repository layout
-
-```
-environment_snakemake.yml     conda environment (snakemake + Jinja2)
-ansys_models/
-  Snakefile                   workflow: render_input, run_ansys
-  config.yaml                 default model (drucker_prager | microplane)
-  run_benchmark.py            runs the workflow for one or both models
-  common/
-    input.mac.j2              Jinja template for the ANSYS entry point
-    parameters.json           shared geometry/mesh/loading/solver/material parameters
-    prep.mac                  geometry and mesh, element type from <model>/element.mac
-    material.mac              steel/plate materials, concrete from <model>/concrete_model.mac
-    solution.mac              boundary/symmetry conditions, nonlinear static solve
-    post.mac                  writes force/displacements per substep to REINF_CONC_BEAM.txt
-  drucker_prager/
-    parameters.json           Drucker-Prager parameters and switches
-    element.mac               SOLID185 element type
-    concrete_model.mac        TB,CONCR,...,DP with HSD2/HSD6 hardening-softening
-  microplane/
-    parameters.json           Microplane parameters
-    element.mac               CPT215 element type
-    concrete_model.mac        TB,MPLA,...,DPC and NLOCAL data
-  results/<model>/            rendered input.mac and ANSYS output
-```
+`d_eff`, `n_reinf_lower`, `n_reinf_upper` and `n_legs_stir` are not used by the ANSYS
+models: their symmetry quarter contains one lower bar, one upper bar and one stirrup leg,
+placed explicitly from the cover and stirrup position parameters.
