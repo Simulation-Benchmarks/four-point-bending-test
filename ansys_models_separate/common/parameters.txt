@@ -1,0 +1,28 @@
+length_span = 4			! [m]
+length_cant = 0.255 	! [m]
+length_load = 1
+height_tot = 0.625		! [m]
+depth_tot = 0.30		! [m]
+height_cover = 0.0385	! [m]
+width_cover = 0.0385	! [m]
+width_supp = 0.3		! [m]
+width_load = 0.2		! [m]
+height_load = 0.05
+height_supp = 0.05
+x_stirrup_1 = 0.06		! [m]
+x_stirrup_2 = 0.165
+x_stirrup_3 = 0.12
+
+num_cuts_12cm = 10
+
+ele_length = 0.05		! war 0.025
+
+diam_reinf_lower = 26e-3
+diam_reinf_upper = 10e-3
+diam_reinf_stir = 10e-3
+
+displacement = -0.007 ! [m]
+
+step_init = 200
+step_max = 20000
+step_min = 25

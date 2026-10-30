@@ -2,4 +2,14 @@
 /CLAUDE.md
 .snakemake/
 /.vscode
+model_select.mac
 __pycache__/
+*.rst
+*.emat
+*.esav
+*.full
+*.ldhi
+*.r001
+*.rdb
+*.stat
+*DSP

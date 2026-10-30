@@ -1,0 +1,2 @@
+# Valid values: "drucker_prager" (Drucker-Prager) or "microplane" (Microplane M7)
+model: drucker_prager

@@ -1,0 +1,209 @@
+/COM,ANSYS RELEASE 2023 R1           BUILD 23.1      UP20221128       12:50:13
+
+ *** WARNING ***                         CP =       1.469   TIME= 12:50:16
+ Overconstraint may occur for Lagrange multiplier or MPC based contact   
+ algorithm.                                                              
+
+ *** WARNING ***                         CP =       1.469   TIME= 12:50:16
+ Boundary conditions, coupling, and/or constraint equations have been    
+ applied on certain contact nodes (for example 3848).                    
+
+ *** WARNING ***                         CP =       1.547   TIME= 12:50:16
+ Multiple constraints have been applied on degree of freedom 3 of        
+ contact node 3795.  The program will remove certain internal MPCs.      
+ Please check the model carefully.                                       
+
+ *** WARNING ***                         CP =       1.547   TIME= 12:50:16
+ Or use relaxation option (target element KEYOPT(11) = 1) to overcome    
+ the over-constraint.                                                    
+
+ *** WARNING ***                         CP =       3.328   TIME= 12:50:19
+ A reference GFRS1 value times the tolerance is used by the              
+ Newton-Raphson method for checking convergence.  The calculated         
+ reference GRADIENT FIELD RESID VAL1= 0 is less than a threshold.  This  
+ threshold defaults to 1.0e-6 or is specified as MINREF on the CNVTOL    
+ command.  Check results carefully.                                      
+
+ *** WARNING ***                         CP =      74.109   TIME= 12:51:32
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 2623 and material 1.                                        
+
+ *** WARNING ***                         CP =      74.109   TIME= 12:51:32
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 2623 and material 1.                                        
+
+ *** WARNING ***                         CP =      74.109   TIME= 12:51:32
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 2623 and material 1.                                        
+
+ *** WARNING ***                         CP =      74.109   TIME= 12:51:32
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 2623 and material 1.                                        
+
+ *** WARNING ***                         CP =      74.109   TIME= 12:51:32
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 2623 and material 1.                                        
+
+ *** WARNING ***                         CP =      74.109   TIME= 12:51:32
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 2623 and material 1.                                        
+
+ *** WARNING ***                         CP =      74.109   TIME= 12:51:32
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 2623 and material 1.                                        
+
+ *** WARNING ***                         CP =      74.109   TIME= 12:51:32
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 2623 and material 1.                                        
+
+ *** WARNING ***                         CP =      76.859   TIME= 12:51:35
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      76.859   TIME= 12:51:35
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      76.859   TIME= 12:51:35
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      76.859   TIME= 12:51:35
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      76.859   TIME= 12:51:35
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      76.859   TIME= 12:51:35
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      76.859   TIME= 12:51:35
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      86.031   TIME= 12:51:44
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      86.031   TIME= 12:51:44
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      86.031   TIME= 12:51:44
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      86.031   TIME= 12:51:44
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      86.031   TIME= 12:51:44
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      86.031   TIME= 12:51:44
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      86.031   TIME= 12:51:44
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      86.031   TIME= 12:51:44
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 92 and material 1.                                          
+
+ *** WARNING ***                         CP =      88.984   TIME= 12:51:48
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 95 and material 1.                                          
+
+ *** WARNING ***                         CP =      88.984   TIME= 12:51:48
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 95 and material 1.                                          
+
+ *** WARNING ***                         CP =      88.984   TIME= 12:51:48
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 95 and material 1.                                          
+
+ *** WARNING ***                         CP =      88.984   TIME= 12:51:48
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 95 and material 1.                                          
+
+ *** WARNING ***                         CP =      88.984   TIME= 12:51:48
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 95 and material 1.                                          
+
+ *** WARNING ***                         CP =      88.984   TIME= 12:51:48
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 95 and material 1.                                          
+
+ *** WARNING ***                         CP =      88.984   TIME= 12:51:48
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 95 and material 1.                                          
+
+ *** WARNING ***                         CP =     112.656   TIME= 12:52:12
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 97 and material 1.                                          
+
+ *** WARNING ***                         CP =     112.656   TIME= 12:52:12
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 97 and material 1.                                          
+
+ *** WARNING ***                         CP =     115.625   TIME= 12:52:16
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 96 and material 1.                                          
+
+ *** WARNING ***                         CP =     115.625   TIME= 12:52:16
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 96 and material 1.                                          
+
+ *** WARNING ***                         CP =     115.625   TIME= 12:52:16
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 96 and material 1.                                          
+
+ *** WARNING ***                         CP =     134.281   TIME= 12:52:37
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 97 and material 1.                                          
+
+ *** WARNING ***                         CP =     134.281   TIME= 12:52:37
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 97 and material 1.                                          
+
+ *** WARNING ***                         CP =     134.281   TIME= 12:52:37
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 97 and material 1.                                          
+
+ *** WARNING ***                         CP =     134.281   TIME= 12:52:37
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 97 and material 1.                                          
+
+ *** WARNING ***                         CP =     134.281   TIME= 12:52:37
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 97 and material 1.                                          
+
+ *** WARNING ***                         CP =     151.578   TIME= 12:52:56
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 147 and material 1.                                         
+
+ *** WARNING ***                         CP =     151.578   TIME= 12:52:56
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 147 and material 1.                                         
+
+ *** WARNING ***                         CP =     162.578   TIME= 12:53:08
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 146 and material 1.                                         
+
+ *** WARNING ***                         CP =     162.578   TIME= 12:53:08
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 146 and material 1.                                         
+
+ *** WARNING ***                         CP =     162.578   TIME= 12:53:08
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 146 and material 1.                                         
+
+ *** WARNING ***                         CP =     162.578   TIME= 12:53:08
+ Drucker-Prager cap plasticity integration algorithm did not converge    
+ for element 146 and material 1.                                         

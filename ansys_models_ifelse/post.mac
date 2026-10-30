@@ -1,0 +1,49 @@
+/POST1
+ALLSEL
+
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! ******************** Letztes, gueltiges Inkrement aufsuchen ********************
+SET,LAST										! Letzten Laststep waehlen
+*GET,loadstep_n,active,0,solu,nCMls				! Anzahl der Laststeps
+*DIM,substep_n,array,loadstep_n					! Array erzeugen mit #Zeilen = #Laststeps
+*DO,i,1,loadstep_n,1							! Schleife ueber alle Laststeps
+SET,i,LAST										! waehle letzten Substep des i-ten Laststeps
+*GET,substep_n(i),active,0,set,SBST				! Anzahl Substeps = Nummer des letzten Supsteps
+	*IF,substep_n(i),EQ,999999,THEN 			! wenn letzter Supstep = 999999 ...
+		SET,PREVIOUS							! ...vorherigen Substep nehmen
+		*GET,substep_n(i),active,0,set,SBST		! wieder pruefen, ob aktueller Substep = 999999 ist
+		*IF,substep_n(i),EQ,999999,THEN			! => nur Substep = 999999 vorhanden...
+			substep_n(i) = 1					! ...dann Anzahl auf 1 setzen
+		*ENDIF
+	*ENDIF
+*ENDDO
+
+*CFOPEN,filname,txt								! Oeffnen der Ergebnisdatei
+*VWRITE,'---Ergebnisdatei---'					! Headerlines
+%C%/
+*VWRITE,'--Kraft [N]--','--u_y Pilot [m]--','u_y Mitte [m]'
+%C	%C%	 %C%/
+SET,FIRST										! 1. Laststep der Ergebnisdatei
+NSEL,s,loc,x,0
+NSEL,r,loc,y,0
+NSEL,r,loc,z,0
+*GET,node_middle,NODE,0,NUM,max
+ALLSEL
+*DO,i,1,loadstep_n,1							! Schleife ueber Laststeps
+	*DO,j,1,substep_n(i),1						! Schleife ueber Substeps
+												! Zeit des aktuellen Substeps = Lastfaktor
+
+		*GET,kraft,NODE,node_load,RF,FY			! Summe der Kraefte in y-Richtung
+		kraft = 2*kraft							! wegen doppelter Symmetrie
+
+		*GET,uy_load,NODE,node_load,u,y			! Verschiebung in y-Richtung an der Lastaufbringung
+		
+		*GET,uy_middle,NODE,node_middle,u,y		! Verschiebung in y-Richtung in Balkenmitte
+		
+*VWRITE,kraft,uy_load,uy_middle					! Schreibe die Daten in Form einer Tabelle in die Ergebnisdatei
+(F15.5,F15.5,F15.5)             
+		SET,NEXT								! nehme naechsten Laststep
+	*ENDDO
+*ENDDO
+*CFCLOS											! Schliessen der Ergebnisdatei
+ALLSEL

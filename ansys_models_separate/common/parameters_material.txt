@@ -1,0 +1,27 @@
+! ### Reinforcement ###
+! Linear parameters
+e_reinf = 2.05e11		! Youngs modulus [N/m^2]
+nu_reinf = 0.3			! Poisson [-]
+
+! Bilinar
+sig_ry = 401.00e6		! mean yield strength [N/m^2]
+eps_ry = sig_ry/e_reinf
+sig_ru = 596.00e6		! mean ultimate tensile strength [N/m^2]
+eps_ru = 0.231
+
+! ### Load and Support plate ###
+! Linear parameters
+e_supp = 2.1e11			! Youngs modulus [N/m^2]
+nu_supp	= 0.3			! Poisson [-]
+
+! ### Concrete - shared (linear + strength) ###
+! Used by both the Drucker-Prager and Microplane material definitions
+e_c = 25660e6			! Youngs modulus  [N/m^2]
+nu_c = 0.2				! Poisson Beton [-]
+sig_cc = 16.71e6		! mean compressive strength [N/m^2]
+sig_ct = 1.0*1.30e6			! mean tensile strength [N/m^2]
+
+! DP strength parameters (also consumed by the Microplane TBDATA call)
+R_c	= sig_cc				! Uniaxial compressive strength
+R_t	= sig_ct				! Uniaxial tensile strength (recommended by dynardo (multiplas): R_t=0.1*R_c for normal concrete)
+R_b	= 1.2*R_c				! Biaxial compressive strength (recommended by dynardo (multiplas): R_b=1.2*R_c for normal concrete)

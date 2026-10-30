@@ -1,0 +1,27 @@
+/SOLU
+
+ANTYPE,static
+NLGEOM,on
+AUTOTS,on
+NSUBST,step_init,step_max,step_min
+NEQIT,50
+NROPT,unsym
+LNSRCH,off
+CNVTOL,F,,0.01,2,100
+OUTRES,all,all
+
+! DOFs for pilot nodes at load and support
+D,node_load,uy,displacement
+D,node_support,uy,0
+
+! Symmetrie BCs
+NSEL,s,loc,x,0
+DSYM,symm,x
+ALLSEL
+NSEL,s,loc,z,0
+DSYM,symm,z
+ALLSEL
+
+SOLVE
+
+FINISH
