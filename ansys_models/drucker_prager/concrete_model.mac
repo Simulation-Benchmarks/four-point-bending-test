@@ -1,0 +1,23 @@
+! Derived HSD parameters (inputs come from drucker_prager/parameters.json)
+kappa_cm = 0.0021-R_c/e_c			! Plastic strain at uniaxial compressive strength (kappa_cm = eps_ml-R_c/E)
+kappa_cu = 0.0035-omega_cu*R_c/e_c	! Plastic strain at transition from power law to exponential softening (kappa_cu = eps_u-omega_u*R_c/E)
+
+! Concrete DP without/with HSD
+MAT,1
+TB,CONCR,1,,,DP								! Drucker-Prager concrete strength parameters
+TBDATA,1,R_c,R_t,R_b
+
+*IF,switch_hsd,eq,1,then
+	TB,CONCR,1,,,DILA						! Drucker-Prager concrete dilatation
+	TBDATA,1,del_t,del_c
+
+! HSD laws
+	*IF,switch_dp,eq,0,then
+		TB,CONCR,1,,,HSD2
+		TBDATA,1,kappa_cm,kappa_cu,omega_ci,omega_cu,omega_cr,G_ft
+		TBDATA,7,omega_tr
+	*ELSEIF,switch_dp,eq,1,then
+		TB,CONCR,1,,,HSD6
+		TBDATA,1,kappa_cm,kappa_cr,omega_ci,omega_cr,kappa_tr,omega_tr
+	*ENDIF
+*ENDIF

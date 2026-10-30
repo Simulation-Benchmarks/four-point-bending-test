@@ -1,141 +1,67 @@
-# ANSYS REINF BEAM
+# REINF BEAM 4 POINT BENDING
 
-Fully parameterized APDL input files for reinforced concrete beam in a 4 point bending setup using two symmetry planes.
+Benchmark of a reinforced concrete beam in a 4 point bending setup. The ANSYS models use
+fully parameterized APDL input files and two symmetry planes.
 
 ## Model
 
-Two different model types
+Three different model types
 
-* 1: concrete with Drucker-Prager material model (and SOLID185 elements)
-* 2: concrete with Microplane material model (and CPT215 elements)
+* `drucker_prager`: ANSYS, concrete with Drucker-Prager material model (and SOLID185 elements)
+* `microplane`: ANSYS, concrete with Microplane material model (and CPT215 elements)
+* `eurocode`: TODO: description
 
-The simulation is displacement-controlled: displacement is applied at the loading
-points, ramping up to the maximum displacement given by the `displacement`
-parameter in `parameters.txt` (e.g. `displacement = -0.001 ! [m]`), and the run
-continues until that target displacement is reached or the solver fails to
-converge.
+## Benchmark parameters
 
-### Input/Output
+`parameters.json` holds the benchmark data shared by all model types. The file is
+`{group: {"name[unit]": value}}`, for example `"length_span[m]": 4`. Units are SI.
+Dimensionless parameters use `[-]`.
 
-* Input: material parameters (`parameters_material.txt`).
-* Output: Force and vertical displacement at the loading point, vertical displacement at the midspan of the beam, stored in `results/<model_type>/REINF_CONC_BEAM.txt`.
-  This is a whitespace-delimited text table with a header line
-  `--Kraft [N]--  --u_y Pilot [m]--  u_y Mitte [m]` followed by one row per
-  load substep, with three columns: applied force [N], pilot-node
-  displacement [m], and midspan displacement [m] (`u_y Mitte` = deflection at
-  midspan).
+`geometry`:
 
-## Running
+| Parameter | Unit | Description |
+|---|---|---|
+| `length_span` | m | span between the support centres |
+| `length_cant` | m | overhang of the beam beyond the support centre |
+| `length_load` | m | distance from midspan to the loading point |
+| `height_tot` | m | total height of the beam |
+| `depth_tot` | m | total width of the beam |
+| `d_eff` | m | effective depth (top fibre to lower reinforcement) |
+| `height_cover` | m | vertical distance from the top/bottom surface to the longitudinal bar axis |
+| `width_cover` | m | lateral distance from the side surface to the longitudinal bar axis |
+| `width_supp` | m | width of the support plate along the span |
+| `width_load` | m | width of the loading plate along the span |
+| `x_stirrup_1` | m | distance from the beam end to the first stirrup |
+| `x_stirrup_2` | m | distance from the first to the second stirrup |
+| `x_stirrup_3` | m | regular stirrup spacing after the second stirrup |
 
-The workflow can be run either manually through ANSYS, or driven by Snakemake.
+`reinforcement`:
 
-### Manual
+| Parameter | Unit | Description |
+|---|---|---|
+| `diam_reinf_lower` | m | diameter of the lower longitudinal bars |
+| `n_reinf_lower` | - | number of lower longitudinal bars |
+| `diam_reinf_upper` | m | diameter of the upper longitudinal bars |
+| `n_reinf_upper` | - | number of upper longitudinal bars |
+| `diam_reinf_stir` | m | stirrup diameter |
+| `n_legs_stir` | - | number of stirrup legs |
 
-Open ANSYS Mechanical APDL Product Launcher, pick this folder, execute the input.mac file.
+`reinforcement_steel`:
 
-### Snakemake
+| Parameter | Unit | Description |
+|---|---|---|
+| `sig_ry` | N/m^2 | yield strength |
+| `sig_ru` | N/m^2 | ultimate strength |
+| `eps_ru` | - | strain at ultimate strength |
 
-First set up the `snakemake` conda environment (see `environment_snakemake.yml`):
+`concrete`:
 
-```
-conda env create -f environment_snakemake.yml
-conda activate snakemake
-```
+| Parameter | Unit | Description |
+|---|---|---|
+| `e_c` | N/m^2 | Young's modulus |
+| `sig_cc` | N/m^2 | uniaxial compressive strength |
+| `sig_ct` | N/m^2 | uniaxial tensile strength |
 
-Then, from within one of the model-selection implementations
-(`ansys_model_ifelse/` or `ansys_model_separate/`), run:
-
-```
-cd ansys_model_ifelse
-snakemake --cores 1
-# or override the model:
-snakemake --cores 1 --config model=microplane
-```
-
-(equivalently for `ansys_model_separate`).
-
-## Model-selection implementations (experimental, for comparison)
-
-`ansys_model_ifelse/` and `ansys_model_separate/` are two parallel, independently
-runnable implementations of Snakemake-driven Drucker-Prager/Microplane model
-selection:
-
-* `ansys_model_ifelse/` keeps the original `*IF/*ELSEIF` branching in `prep.mac`/
-  `material.mac`, but the `switch_model` value is now supplied by Snakemake
-  (`config.yaml`'s `model` key, overridable with `snakemake --config model=microplane`)
-  instead of being hand-edited in `parameters_material.txt`.
-* `ansys_model_separate/` splits the model-specific APDL logic into separate
-  subdirectories: `common/` (shared scripts: `input.mac`, `prep.mac`,
-  `material.mac`, `solution.mac`, `post.mac`, `auswertung.py`, plus the
-  shared `parameters.txt`/`parameters_material.txt`), and `drucker_prager/`/
-  `microplane/` (each with its own `element.mac`, `concrete_model.mac`,
-  `parameters_material.txt`). `Snakefile`, `config.yaml`, and
-  `environment_plot.yml` stay at the `ansys_model_separate/` root. Which
-  subdirectory is used is selected via an APDL character parameter
-  (`MAT_MODEL`, set to `drucker_prager` or `microplane` — matching the
-  subdirectory name directly) driven by `config.yaml`'s `model` key. Both
-  directories use `drucker_prager`/`microplane` as their model names,
-  though the two implementations aren't required to share a naming
-  convention.
-
-### `ansys_model_ifelse/` files
-
-* `Snakefile` — Snakemake workflow: validates `config.yaml`'s `model`, writes
-  the numeric `switch_model` into `model_select.mac`, then runs ANSYS in batch
-  mode on `input.mac`.
-* `config.yaml` — Snakemake config (`model: drucker_prager|microplane`).
-* `input.mac` — ANSYS entry point; `/INPUT`s `model_select.mac`,
-  `parameters.txt`, `parameters_material.txt`, `prep.mac`, `solution.mac`,
-  `post.mac` in order.
-* `model_select.mac` — auto-generated by Snakemake; sets the integer
-  `switch_model` variable.
-* `parameters.txt` — geometry/mesh/loading parameters (spans, cover, mesh
-  size, displacement, substep limits).
-* `parameters_material.txt` — material constants; `*IF,switch_model,eq,0/1`
-  branches between Drucker-Prager and Microplane parameter sets.
-* `prep.mac` — builds geometry/mesh; `*IF,switch_model` picks the SOLID185 vs
-  CPT215 element; `/INPUT`s `material.mac`.
-* `material.mac` — `*IF/*ELSEIF/*ELSE` branches to build the Drucker-Prager
-  (with nested HSD2/HSD6 logic) or Microplane concrete material, plus shared
-  steel/plate materials.
-* `solution.mac` — nonlinear static solve (NLGEOM), boundary/symmetry
-  conditions, `SOLVE`.
-* `post.mac` — extracts reaction force and displacements per substep, writes
-  `REINF_CONC_BEAM.txt`.
-
-### `ansys_model_separate/` files
-
-* `Snakefile` — Snakemake workflow: selects a model *subdirectory* (string),
-  writes `MAT_MODEL='<model>'` into `common/model_select.mac`.
-* `config.yaml` — Snakemake config; `model` key must match a subdirectory
-  name.
-* `common/input.mac` — ANSYS entry point; `/INPUT`s `model_select.mac`, the
-  shared `parameters.txt`/`parameters_material.txt`, then the selected
-  subdirectory's `parameters_material.txt` (path built from `%MAT_MODEL%`),
-  then `prep.mac`, `solution.mac`, `post.mac`.
-* `common/model_select.mac` — auto-generated; sets the string `MAT_MODEL`
-  used to build `/INPUT` paths (path-based dispatch instead of `*IF`).
-* `common/parameters.txt` — same geometry/mesh/loading parameters as in
-  `ansys_model_ifelse/`.
-* `common/parameters_material.txt` — only model-agnostic shared constants
-  (steel, plate, concrete elastic/strength values); no branching.
-* `common/prep.mac` — same geometry/meshing logic; delegates the element-type
-  definition to `%MAT_MODEL%/element.mac` and the material to `material.mac`.
-* `common/material.mac` — defines shared steel/plate materials; delegates the
-  concrete constitutive model to `%MAT_MODEL%/concrete_model.mac`.
-* `common/solution.mac` / `common/post.mac` — identical solve and
-  result-extraction logic to `ansys_model_ifelse/`.
-* `common/auswertung.py` — Python helper for plotting/post-processing results
-  outside ANSYS (not part of the ANSYS run itself).
-* `drucker_prager/element.mac` — defines the SOLID185 element type for the DP
-  concrete.
-* `drucker_prager/concrete_model.mac` — builds `TB,CONCR,...,DP` plus the
-  nested HSD2/HSD6 hardening-softening logic.
-* `drucker_prager/parameters_material.txt` — DP-specific parameters
-  (dilatancy, HSD constants, switches).
-* `microplane/element.mac` — defines the CPT215 element type (extra
-  pore-pressure DOFs) for the microplane model.
-* `microplane/concrete_model.mac` — builds `TB,MPLA,...,DPC` and `NLOCAL`
-  table data.
-* `microplane/parameters_material.txt` — microplane-specific constants
-  (cap/damage/nonlocal parameters).
+`d_eff`, `n_reinf_lower`, `n_reinf_upper` and `n_legs_stir` are not used by the ANSYS
+models: their symmetry quarter contains one lower bar, one upper bar and one stirrup leg,
+placed explicitly from the cover and stirrup position parameters.
