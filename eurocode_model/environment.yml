@@ -2,7 +2,8 @@
 #
 #   conda env create -f environment.yml
 #   conda activate fibtg243
-#   python R65.py
+#   python ec2_design_calculation.py
+#   python -m eurocode_model.parameter_study    # from the repository root
 #
 # Note: structuralcodes is not published on conda-forge, so it is installed
 # from PyPI via the pip section below.  Its own dependencies (numpy, scipy,
@@ -16,7 +17,6 @@ dependencies:
   - numpy>=1.20
   - scipy>=1.6
   - shapely>=2.0.2
-  - pyyaml>=6.0
   - jupyter
   - pip
   - pip:

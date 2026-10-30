@@ -3,32 +3,36 @@
 Four-point bending beam of Rüsch & Rehm (1963), answered **without FEM** by a
 classic design computation to DIN EN 1992-1-1:2011-01.
 
+* **Q5** — calculated mean resistance, compared against the measured failure
+  load ``R_EXP`` (``level: mean``).
 * **Q6** — maximum design value of the point loads ``P``, beam as built
-  (``case: with_stirrups``).
+  (``level: design``, ``case: with_stirrups``).
 * **Q7** — the same with the stirrups removed from the shear spans
-  (``case: without_stirrups``).
+  (``level: design``, ``case: without_stirrups``).
 
-The specimen and the variant of the computation are described entirely by a
-parameter file; everything the Eurocode fixes is a constant in this module.
-``compute_P`` is the single entry point::
+The specimen is described by the benchmark parameter file ``../parameters.json``
+(shared with the ANSYS models), the variant of the computation and the
+assumptions outside the benchmark by ``params.json``; everything the Eurocode
+fixes is a constant in this module.  ``compute_P`` is the single entry point::
 
-    python R65.py [params.yaml]
+    python ec2_design_calculation.py [params.json]
 
 Built on `structuralcodes <https://github.com/fib-international/structuralcodes>`_,
 *fib*'s own EC2 library.  Clause numbers refer to DIN EN 1992-1-1:2011-01,
-i.e. EN 1992-1-1:2004 + AC:2010 — the edition carried in this repository as
-``DINEN1992-1-1.pdf``.  They are NOT valid for EN 1992-1-1:2023, which
-renumbers the standard (bending 6.1 -> 8.1, shear 6.2 -> 8.2).
+i.e. EN 1992-1-1:2004 + AC:2010.  They are NOT valid for EN 1992-1-1:2023,
+which renumbers the standard (bending 6.1 -> 8.1, shear 6.2 -> 8.2).
 Units are N and mm internally; results are returned in kN and kNm.
 """
 
 from __future__ import annotations
 
+import json
 import math
+import re
 import sys
+from decimal import Decimal
 from pathlib import Path
 
-import yaml
 from shapely import Polygon
 from structuralcodes.codes.ec2_2004 import shear
 from structuralcodes.geometry import SurfaceGeometry, add_reinforcement
@@ -45,7 +49,7 @@ KN, KNM = 1e-3, 1e-6            # N, Nmm -> kN, kNm
 # These are properties of the code, not of the specimen, so they do not
 # belong in the parameter file.  The nationally determined parameters are
 # the CEN recommended values: the German National Annex is a separate
-# document and is not available in this repository.
+# document and is not used here.
 # =====================================================================
 GAMMA_C = 1.5           # Table 2.1N, concrete
 GAMMA_S = 1.15          # Table 2.1N, reinforcement
@@ -61,20 +65,74 @@ Z_FACTOR = 0.9          # 6.2.3(1), inner lever arm z = 0.9 d
 # reinforcement (the 0.7 of Table 3.1 is specific to the concrete tensile
 # strength, CoV ~ 18 %, and must not be transferred to rebar at CoV ~ 5 %).
 # The code-calibration bias factor is used instead.  This is the only material
-# value in the whole computation not traceable to a document in this repository.
+# value in the whole computation not traceable to the benchmark data or to EC2.
 BIAS_STEEL = 1.10
 
 # theta within [21.8, 45] deg, from 1 <= cot theta <= 2.5, eq. (6.7N).
 # Both VRds and VRdmax reject angles outside this window.
 THETA_GRID = [21.8 + i * (45.0 - 21.8) / 400 for i in range(401)]
 
-DEFAULT_PARAMS = Path(__file__).with_name("params.yaml")
+# Experiment — reference value from the benchmark, not an input to the computation
+R_EXP = 259.2           # [kN] measured failure load per point load
+
+DEFAULT_PARAMS = Path(__file__).with_name("params.json")
+COMMON_PARAMS = Path(__file__).resolve().parents[1] / "parameters.json"
+
+# Parameter files are grouped {group: {"name[unit]": value}} in SI units, the
+# convention of the shared benchmark file.  Factors to the units used here.
+_UNIT_TO_INTERNAL = {"m": "1e3", "N/m^2": "1e-6", "kN/m^3": "1", "-": "1"}
+_KEY = re.compile(r"^(\w+)\[([^\[\]]+)\]$")
+
+# Benchmark parameter names (shared with the ANSYS models) -> names used here.
+# Benchmark parameters not listed are not needed by this computation.
+_FROM_COMMON = {
+    "depth_tot": "b", "height_tot": "h", "d_eff": "d", "height_cover": "d2",
+    "length_span": "span", "length_cant": "overhang", "length_load": "a_shear",
+    "x_stirrup_3": "s_w",
+    "diam_reinf_lower": "phi_bot", "n_reinf_lower": "n_bot",
+    "diam_reinf_upper": "phi_top", "n_reinf_upper": "n_top",
+    "sig_cc": "fcm", "sig_ct": "fctm", "e_c": "ecm",
+    "sig_ry": "fym", "sig_ru": "fum",
+}
 
 
-def load_params(path=DEFAULT_PARAMS):
-    """Read a benchmark parameter file into a plain dict."""
+def _read_json_params(path):
+    """Flatten a grouped parameter file into {name: value} in internal units.
+
+    Numbers are converted via Decimal from their literal text, so 0.0385 m
+    becomes exactly 38.5 mm and 16.71e6 N/m^2 exactly 16.71 MPa.
+    """
     with open(path, "r", encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+        groups = json.load(fh, parse_float=Decimal)
+    flat = {}
+    for params in groups.values():
+        for key, value in params.items():
+            match = _KEY.match(key)
+            if not match or match.group(2) not in _UNIT_TO_INTERNAL:
+                raise ValueError(f"{path}: key {key!r} must look like name[unit] with unit "
+                                 f"one of {list(_UNIT_TO_INTERNAL)}")
+            name, unit = match.groups()
+            if name in flat:
+                raise ValueError(f"{path}: {name!r} is defined twice")
+            if isinstance(value, Decimal):
+                value = float(value * Decimal(_UNIT_TO_INTERNAL[unit]))
+            elif isinstance(value, int) and unit != "-":     # counts stay int
+                value = float(value * Decimal(_UNIT_TO_INTERNAL[unit]))
+            flat[name] = value
+    return flat
+
+
+def load_params(path=DEFAULT_PARAMS, common_path=COMMON_PARAMS):
+    """Read the benchmark and the model parameter file into one plain dict."""
+    common = _read_json_params(common_path)
+    p = {short: common[name] for name, short in _FROM_COMMON.items()}
+    # stirrup area per stirrup section, all legs [mm2]
+    p["asw"] = common["n_legs_stir"] * math.pi / 4 * common["diam_reinf_stir"] ** 2
+    for name, value in _read_json_params(path).items():
+        if name in p:
+            raise ValueError(f"{path}: {name!r} is already defined by {common_path}")
+        p[name] = value
+    return p
 
 
 def make_materials(p):
@@ -93,7 +151,7 @@ def make_materials(p):
         — R(x_k).  Not a Eurocode verification on its own: it exists so that
         R(x_m)/R(x_k) can be formed, which is the coefficient of variation of
         the resistance in the ECOV safety format (fib MC2010/MC2020),
-        V_R = ln(R(x_m)/R(x_k)) / 1.645.  See ``R65_study.py`` investigation 4.
+        V_R = ln(R(x_m)/R(x_k)) / 1.645.  See ``parameter_study.py`` investigation 4.
     """
     level = p["level"]
     if level in ("design", "characteristic"):
@@ -115,7 +173,7 @@ def make_materials(p):
         alpha_cc=ALPHA_CC,
         constitutive_law="parabolarectangle",   # 3.1.7(1), eq. (3.17)/(3.18)
     )
-    # NOTE epsuk is assumed, see params.yaml. It is not reached by this section,
+    # NOTE epsuk is assumed, see README. It is not reached by this section,
     # but it does set the slope of the inclined branch 3.2.7(2)a.
     steel = ReinforcementEC2_2004(
         fyk=fyk, Es=ES, ftk=ftk, epsuk=p["epsuk"], gamma_s=gamma_s,
@@ -198,6 +256,9 @@ def self_weight(p):
 
     Simply supported over ``span`` with an ``overhang`` at each end, so the
     overhangs relieve the midspan moment and the support shear.
+
+    ``gamma_concrete`` is the unit weight (Wichte) of reinforced concrete,
+    EN 1991-1-1 Table A.1 — not to be confused with the partial factor GAMMA_C.
     """
     g_k = p["gamma_concrete"] * 1e-9 * p["b"] * p["h"] * 1e3        # kN/m
     span, overhang = p["span"], p["overhang"]
@@ -283,9 +344,9 @@ def compute_P(p):
         res["P_k"] = res["P"] / GAMMA_Q
     # comparing against the experiment is only meaningful at mean level: a
     # design value carries the safety margin the experiment does not know about
-    if p.get("r_exp") and p["level"] == "mean":
-        res["r_exp"] = p["r_exp"]
-        res["r_exp_over_calc"] = p["r_exp"] / res["P"]
+    if p["level"] == "mean":
+        res["r_exp"] = R_EXP
+        res["r_exp_over_calc"] = R_EXP / res["P"]
     return res
 
 

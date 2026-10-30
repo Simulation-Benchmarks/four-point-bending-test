@@ -1,12 +1,15 @@
 """Parameter study around the R65 benchmark computation.
 
-Reads the default parameter file, varies one thing at a time and calls
-``R65.compute_P``.  Nothing is recomputed here — this file only chooses
-parameter sets and prints the comparison::
+Reads the default parameter files (``params.json`` and ``../parameters.json``),
+varies one thing at a time and calls ``ec2_design_calculation.compute_P``.
+Nothing is recomputed here — this file only chooses parameter sets, prints the
+comparison and writes the benchmark answers to ``results/metrics.json``.
+It imports ``eurocode_model.ec2_design_calculation``, so it runs as a module
+from the repository root (or via ``run_benchmark.py``)::
 
-    python R65_study.py
+    python -m eurocode_model.parameter_study
 
-Ordered as the benchmark asks them (``2026-07_fib_TG243_NLFEA_Example.pdf``):
+Ordered as the *fib* TG 2.4.3 NLFEA benchmark example (July 2026) asks them:
 
 1. **Q5** — compare against the experiment, beam as built (with stirrups).
 
@@ -26,12 +29,10 @@ Ordered as the benchmark asks them (``2026-07_fib_TG243_NLFEA_Example.pdf``):
 
 Clause numbers printed by investigations 1-3 — 6.1, 6.2.2, 6.2.3, 3.2.7(2),
 Table 3.1 — refer to **DIN EN 1992-1-1:2011-01, i.e. EN 1992-1-1:2004 +
-AC:2010**, the edition carried in this repository as ``DINEN1992-1-1.pdf``.
-Investigation 4 is the exception: its safety-format constants come from
-EN 1992-1-1:2023 Annex A and fib MC2020, a different edition that renumbers the
-standard (bending 6.1 -> 8.1, shear 6.2 -> 8.2), so clause references are not
-comparable across that boundary and none of its source documents is in this
-repository.
+AC:2010**.  Investigation 4 is the exception: its safety-format constants come
+from EN 1992-1-1:2023 Annex A and fib MC2020, a different edition that
+renumbers the standard (bending 6.1 -> 8.1, shear 6.2 -> 8.2), so clause
+references are not comparable across that boundary.
 """
 
 from __future__ import annotations
@@ -42,8 +43,8 @@ import json
 import math
 from pathlib import Path
 
-import eurocode_model.R65 as R65
-from eurocode_model.R65 import P_from_moment, compute_P, format_result, load_params
+import eurocode_model.ec2_design_calculation as ec2
+from eurocode_model.ec2_design_calculation import P_from_moment, compute_P, format_result, load_params
 
 BASE = load_params()
 RESULTS_DIR = Path(__file__).with_name("results")
@@ -58,17 +59,17 @@ def run(**overrides):
 
 @contextlib.contextmanager
 def code_constant(name, value):
-    """Temporarily override a module constant of R65.
+    """Temporarily override a module constant of ec2_design_calculation.
 
-    Needed for the assumptions that are deliberately *not* in params.yaml
+    Needed for the assumptions that are deliberately *not* in the parameter files
     because they belong to the code side rather than to the specimen.
     """
-    original = getattr(R65, name)
-    setattr(R65, name, value)
+    original = getattr(ec2, name)
+    setattr(ec2, name, value)
     try:
         yield
     finally:
-        setattr(R65, name, original)
+        setattr(ec2, name, original)
 
 
 def save_json(name, data):
@@ -90,8 +91,8 @@ print("=" * 78)
 print("fib TG 2.4.3 / R65 — parameter study")
 print("=" * 78)
 print("Clause numbers below — 6.1, 6.2.2, 6.2.3, 3.2.7(2), Table 3.1 — refer to "
-    "DIN EN 1992-1-1:2011-01, i.e. EN 1992-1-1:2004 + AC:2010, the edition in "
-    "this repository as DINEN1992-1-1.pdf. Investigation 4 is the exception and "
+    "DIN EN 1992-1-1:2011-01, i.e. EN 1992-1-1:2004 + AC:2010. "
+    "Investigation 4 is the exception and "
     "says so where it happens: it uses EN 1992-1-1:2023, which renumbers the "
     "standard, so clause references are not comparable across that boundary.")
 
@@ -104,14 +105,13 @@ print("Same EC2 equations, gamma_M = 1.0, measured mean strengths, actions "
     "unfactored. This separates model bias from safety margin.\n")
 
 print(f"{'steel branch':<28}{'M_R [kNm]':>11}{'P [kN]':>9}{'R_exp/R_calc':>14}")
-q5_P = {}
+metrics = {}  # written to results/metrics.json after Q7
 for label, branch in (("horizontal (EC2 3.2.7(2)b )", "elasticperfectlyplastic"),
                       ("inclined (EC2 3.2.7(2)a )", "elasticplastic")):
     r = run(level="mean", case="with_stirrups", branch=branch)
     print(f"{label:<28}{r['M_R']:>11.1f}{r['P']:>9.1f}{r['r_exp_over_calc']:>14.3f}")
-    q5_P[f"{branch} [kN]"] = r["P"]
-save_json("q5_P.json", q5_P)
-print(f"\nmeasured R_exp = {BASE['r_exp']} kN")
+    metrics[f"load_carrying_capacity_{branch} [kN]"] = r["P"]
+print(f"\nmeasured R_exp = {ec2.R_EXP} kN")
 print("The residual gap is strain hardening, which the horizontal branch discards:\
 this beam is very under-reinforced and the steel is highly ductile.")
 
@@ -133,7 +133,7 @@ print(f"without stirrups (EC2 6.2.2  )                    V_R,c= {m7['V_R']:6.1f
 print(f"\nas built, bending governs by {m6['P_shear'] / m6['P_bending']:.1f}x"
       " — the Q5 comparison is a flexural one, confirmed.")
 print("without stirrups the beam would have failed in shear at roughly"
-      f" {m7['P_shear']:.0f}-{m7['P_shear_av']:.0f} kN, far below R_exp = {BASE['r_exp']} kN")
+      f" {m7['P_shear']:.0f}-{m7['P_shear_av']:.0f} kN, far below R_exp = {ec2.R_EXP} kN")
 print("— a preview of why Q7 falls so far below Q6 (investigation 3).")
 print("\nCAVEAT the mean computation without stirrups after EC2 6.2.2 is a hybrid: C_Rd,c = 0.18/gamma_C keeps the \
 characteristic-level constant 0.18 at gamma_C = 1, and nu = 0.6(1-f_ck/250)\
@@ -152,7 +152,7 @@ print(f"{'eps_uk':>8}{'M horiz [kNm]':>16}{'M incl [kNm]':>15}{'P incl [kN]':>13
 for epsuk in (0.05, 0.075, 0.10, 0.15, 0.231):
     h = run(level="mean", epsuk=epsuk, branch="elasticperfectlyplastic")
     i = run(level="mean", epsuk=epsuk, branch="elasticplastic")
-    mark = "  <- params.yaml" if epsuk == BASE["epsuk"] else ""
+    mark = "  <- params.json" if epsuk == BASE["epsuk"] else ""
     print(f"{epsuk:>8.3f}{h['M_R']:>16.1f}{i['M_R']:>15.1f}"
           f"{i['P']:>13.1f}{i['r_exp_over_calc']:>14.3f}{mark}")
 print("\n0.231 would be A_10 = 23.1 %, the elongation after fracture — NOT eps_uk. \
@@ -177,7 +177,7 @@ the subject of investigation 4.")
 sub("2.1  Sensitivity of Q6 to the assumptions outside EC2")
 
 print(f"{'variant':<42}{'M_Rd [kNm]':>12}{'P_d [kN]':>10}")
-base_fyk = BASE["fym"] / R65.BIAS_STEEL
+base_fyk = BASE["fym"] / ec2.BIAS_STEEL
 for label, fyk_var in (("f_yk = f_ym/1.1  (base)", base_fyk),
                        ("f_yk = f_ym - 1.645*30", BASE["fym"] - 1.645 * 30),
                        ("f_yk = f_ym  (no reduction)", BASE["fym"])):
@@ -205,26 +205,31 @@ against Q6 = {q6['P']:.1f} kN, removing the stirrups costs"
       f" ... {100 * (1 - q7['P'] / q6['P']):.0f} % of the design load,\
 and the governing mode changes from bending to shear.")
 
+# design values at p_f = 1e-6: Q6 by the partial factors, Q7 without the a_v < 2d allowance
+metrics["max_load_1e-6_p_f_stirrups [kN]"] = q6["P"]
+metrics["max_load_1e-6_p_f_no_stirrups [kN]"] = q7["P"]
+save_json("metrics.json", metrics)
+
 
 # =====================================================================
 # 4. Additional — the target failure probability of 1e-6
 # =====================================================================
 rule("4. Additional study — target failure probability of 1e-6, safety formats")
 
-print("NOTE ON VINTAGE  Investigations 1-3 cite EN 1992-1-1:2004 + AC:2010, the "
-    "edition in this repository. The safety-format constants below come from a "
+print("NOTE ON VINTAGE  Investigations 1-3 cite EN 1992-1-1:2004 + AC:2010. "
+    "The safety-format constants below come from a "
     "DIFFERENT edition — EN 1992-1-1:2023 Annex A — and from EN 1990 and fib "
     "MC2020. EC2:2023 renumbers the standard, so 'Annex A' does not denote the "
     "same thing in the two editions and the clause numbers above do not carry "
-    "over. None of those three documents is in this repository; every constant "
-    "taken from them is therefore an unverified assumption here (see notes.md). "
+    "over. Every constant taken from those three documents is an unverified "
+    "assumption here (see additional_notes.md). "
     "The RESISTANCES being factored, by contrast, are all computed to the 2011 "
     "edition — only the factors applied to them are of the newer vintage.\n")
 
 # Constants of EN 1990, EC2:2023 Annex A and fib MC2020.  Unlike the constants
-# in R65.py these stay here, because compute_P does not use them: R65.py
-# implements DIN EN 1992-1-1:2011, and these belong to the safety format
-# wrapped around it.  None of their source documents is in this repository.
+# in ec2_design_calculation.py these stay here, because compute_P does not use
+# them: ec2_design_calculation.py implements DIN EN 1992-1-1:2011, and these
+# belong to the safety format wrapped around it.
 ALPHA_R = 0.80        # EN 1990 C7, FORM sensitivity factor of the resistance
 BETA_50Y = 3.8        # EN 1990 Table B2, RC2, 50-year reference period
 BETA_1Y = 4.7         # EN 1990 Table B2, RC2,  1-year reference period
@@ -261,9 +266,9 @@ print("\nbeta = 4.7 per year and beta = 3.8 per 50 years are the SAME reliabilit
     "RC2. What follows corroborates that by three independent safety formats.")
 
 # --- the material levels each format needs ---------------------------
-fck = BASE["fcm"] - R65.DELTA_FCK
-fyk = BASE["fym"] / R65.BIAS_STEEL
-fuk = BASE["fum"] / R65.BIAS_STEEL
+fck = BASE["fcm"] - ec2.DELTA_FCK
+fyk = BASE["fym"] / ec2.BIAS_STEEL
+fuk = BASE["fum"] / ec2.BIAS_STEEL
 
 m = run(level="mean")            # R(x_m)
 k = run(level="characteristic")  # R(x_k)  <- the level added for this section
@@ -273,7 +278,7 @@ d = q6                           # R(x_d), the design run of investigation 2
 # no fourth level: it is 'mean' with the reduced strengths passed in.  Note
 # f_yR = 1.10 * f_ym/1.10 = f_ym exactly — the GFM steel IS the measured mean,
 # an artefact of BIAS_STEEL = 1.10 being the same 1.10 the GFM uses.
-gfm = run(level="mean", fcm=0.85 * R65.ALPHA_CC * fck,
+gfm = run(level="mean", fcm=0.85 * ec2.ALPHA_CC * fck,
           fym=1.10 * fyk, fum=1.10 * fuk)
 
 print(f"\n{'level':<34}{'f_c [MPa]':>11}{'f_y [MPa]':>11}{'M_R [kNm]':>12}")
@@ -311,7 +316,7 @@ for label, M_Rd in (
         ("GFM   R(x_R)/1.27          (gamma_Rd implicit)", gfm["M_R"] / GAMMA_R_GFM),
         ("GFM   R(x_R)/1.27/gamma_Rd (gamma_Rd explicit)",
          gfm["M_R"] / GAMMA_R_GFM / GAMMA_RD)):
-    print(f"{label:<45}{M_Rd:>12.2f}{P_from_moment(BASE, M_Rd, R65.GAMMA_G):>11.1f}")
+    print(f"{label:<45}{M_Rd:>12.2f}{P_from_moment(BASE, M_Rd, ec2.GAMMA_G):>11.1f}")
 
 ecov_M = m["M_R"] / gamma_R / GAMMA_RD
 gfm_M = gfm["M_R"] / GAMMA_R_GFM

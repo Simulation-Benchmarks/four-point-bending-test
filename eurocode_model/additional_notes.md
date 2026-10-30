@@ -2,7 +2,7 @@
 
 Working notes, 2026-09-03 (glossary and GFM rows added 2026-09-04). Not a deliverable; scratch
 reasoning for the safety-format part of the fib TG 2.4.3 benchmark. Numbers marked ✔ were
-computed in-session with `R65.py` and now reproduce from `R65_study.py` investigation 4;
+computed in-session with `ec2_design_calculation.py` and now reproduce from `parameter_study.py` investigation 4;
 numbers marked ? are from memory and still need a source.
 
 **If you are coming back to this cold, read §8 first** — it explains what PFM / GFM / ECOV
@@ -19,7 +19,7 @@ Three reasons, in order of how much they save you:
 1. The 10⁻⁶ is almost certainly the **standard EN 1990 RC2 target expressed per year**
    (β = 4.7 → p_f = 1.3·10⁻⁶ ✔), which is the *same* reliability as β = 3.8 over 50 years
    — and that is exactly what γ_C = 1.5 / γ_S = 1.15 / γ_G = 1.35 are calibrated for.
-   So **`R65.py` as it stands already answers Q6.** P_d = 159.0 kN.
+   So **`ec2_design_calculation.py` as it stands already answers Q6.** P_d = 159.0 kN.
 2. The FORM has already been done for you, once, by the code committee: the split
    α_R = 0.8 / α_E = −0.7 in EN 1990 §C7 *is* the linearised design point. Re-deriving it
    per problem is what the semi-probabilistic format exists to avoid.
@@ -35,7 +35,7 @@ May-2026 slides make (slides 16, 21, 22).
 
 ## 1. First: pin down what 10⁻⁶ means — this is the one real ambiguity
 
-The benchmark (`2026-07_fib_TG243_NLFEA_Example.pdf`, Q6) says only *"assuming a target
+The benchmark says only *"assuming a target
 probability of failure of 10⁻⁶"*. It gives **no reference period**. That single omission
 moves the answer by ~15 %, so it has to be stated as an assumption in the write-up.
 
@@ -177,10 +177,11 @@ Independent check: first-order variance propagation (MVFOSM, central differences
 - **fib Bulletin 80 (2016)** — partial factors for existing structures; TG slide 13.
 - **ISO 2394:2015** — general target-reliability principles.
 
-⚠ **Traceability gap.** None of EC2:2023, MC2020, JCSS PMC or EN 1990 is in this repo — only
-DIN EN 1992-1-1:2011 and the two TG PDFs. Every statistical parameter above is therefore in
-the same category as the existing `BIAS_STEEL = 1.10` assumption that the README already
-flags as "the only material value not traceable to a document in this repository". Keep that
+⚠ **Traceability gap.** None of EC2:2023, MC2020, JCSS PMC or EN 1990 was available as a
+source — only DIN EN 1992-1-1:2011 and the two TG documents. Every statistical parameter above
+is therefore in the same category as the existing `BIAS_STEEL = 1.10` assumption that the
+README already flags as "the only material value not traceable to the benchmark data or to
+EC2". Keep that
 discipline: either add the sources, or mark each number as an assumption and show the
 sensitivity. **The `?` marks in this file are the to-do list.**
 
@@ -198,7 +199,7 @@ sensitivity. **The `?` marks in this file are the to-do list.**
 | 5 | FORM / SORM | more | design point, exact α_i — **not needed** |
 
 Levels 0–3 are already done in scratch (`scratchpad/probe.py`, `scratchpad/taylor.py`) and
-produced every ✔ number above. Porting them into `R65_study.py` as investigations 4 and 5 is
+produced every ✔ number above. Porting them into `parameter_study.py` as investigations 4 and 5 is
 the natural next step.
 
 **On level 4, if it's ever wanted:** crude MC at 10⁻⁶ needs ~10⁸ samples, impossible through
@@ -215,7 +216,7 @@ strongly nonlinear in the dominant variable — it is not, R is near-linear in f
 (c) if you needed the design point to *calibrate* new partial factors rather than apply
 existing ones. None applies to Q6.
 
-### Concrete change needed in `R65.py`
+### Concrete change needed in `ec2_design_calculation.py`
 
 `make_materials` currently has two levels: `design` (char. strengths ÷ γ_M) and `mean`
 (measured means, γ_M = 1). ECOV needs a third — **characteristic strengths with γ_M = 1** —
@@ -247,7 +248,7 @@ Three reasons the Q6 machinery breaks for Q7, all worth flagging to the TG:
    feeds straight through. An ECOV V_R computed for Q7 will be badly overstated. Either use a
    JCSS-based V_fc = 0.15 with a Taylor propagation, or say plainly that ECOV is unreliable
    for this mode on this specimen.
-3. **C_Rd,c = 0.18/γ_C is already a characteristic-level constant** — the README/`R65.py`
+3. **C_Rd,c = 0.18/γ_C is already a characteristic-level constant** — the README/`ec2_design_calculation.py`
    docstring already notes that evaluating 6.2.2 at γ_C = 1 gives a mean-material /
    characteristic-model hybrid, not R(x_m). ECOV needs a true R(x_m); eq. (6.2) cannot give one.
    This is a genuine limitation, not a modelling choice.
@@ -281,7 +282,7 @@ by every code format; worth one sentence, no more.
 - [ ] Get EC2:2023 Annex A and the JCSS PMC into the repo, or mark all statistics as
       assumptions in the README's "Decisions behind the numbers" section.
 - [x] Add `level: characteristic` to `make_materials`; port the ECOV comparison into
-      `R65_study.py` as investigation 4. *(done, branch `safety-format-ecov`)*
+      `parameter_study.py` as investigation 4. *(done, branch `safety-format-ecov`)*
 - [ ] Port `taylor.py` (MVFOSM variance propagation) as investigation 5. Its results are
       currently only **quoted** in investigation 4's CAVEAT 1, not recomputed — so the
       variance shares (f_c < 1 %, f_y ~34 %, θ_R ~55 %) are unverifiable from the repo.
@@ -299,10 +300,10 @@ by every code format; worth one sentence, no more.
 ## 7. Scratch files
 
 `probe.py` (safety formats, ECOV) is superseded — it is now investigation 4 of
-`R65_study.py`, and every ✔ number in §2 reproduces exactly from there.
+`parameter_study.py`, and every ✔ number in §2 reproduces exactly from there.
 
 `taylor.py` (MVFOSM, the §3 variance shares) still lives only in the session scratchpad and
-**will be lost when it is cleaned up**. It imports `R65.py` unmodified and is ~60 lines; if
+**will be lost when it is cleaned up**. It imports `ec2_design_calculation.py` unmodified and is ~60 lines; if
 the §3 table matters, port it before then.
 
 ---

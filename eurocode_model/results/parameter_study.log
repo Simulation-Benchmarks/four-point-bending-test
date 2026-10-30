@@ -1,7 +1,7 @@
 ==============================================================================
 fib TG 2.4.3 / R65 — parameter study
 ==============================================================================
-Clause numbers below — 6.1, 6.2.2, 6.2.3, 3.2.7(2), Table 3.1 — refer to DIN EN 1992-1-1:2011-01, i.e. EN 1992-1-1:2004 + AC:2010, the edition in this repository as DINEN1992-1-1.pdf. Investigation 4 is the exception and says so where it happens: it uses EN 1992-1-1:2023, which renumbers the standard, so clause references are not comparable across that boundary.
+Clause numbers below — 6.1, 6.2.2, 6.2.3, 3.2.7(2), Table 3.1 — refer to DIN EN 1992-1-1:2011-01, i.e. EN 1992-1-1:2004 + AC:2010. Investigation 4 is the exception and says so where it happens: it uses EN 1992-1-1:2023, which renumbers the standard, so clause references are not comparable across that boundary.
 
 ==============================================================================
 1. Q5 — mean level vs the experiment, beam as built (with stirrups)
@@ -21,7 +21,7 @@ The residual gap is strain hardening, which the horizontal branch discards:this 
 The comparison above is a bending comparison, which is only meaningful if the specimen could not have failed in shear first.
 
 bending (EC2 6.1)                                        P =   224.8 kN
-with stirrups (EC2 6.2.3)    theta = 25.63 deg  V_R  =  577.8 kN   P =   568.4 kN
+with stirrups (EC2 6.2.3)    theta = 25.63 deg  V_R  =  578.1 kN   P =   568.7 kN
 without stirrups (EC2 6.2.2  )                    V_R,c=  108.4 kN   P =    99.1 kN  (116.3 kN with the a_v < 2d allowance)
 
 as built, bending governs by 2.5x — the Q5 comparison is a flexural one, confirmed.
@@ -38,7 +38,7 @@ eps_uk is never reached by this section, so it does not change the horizontal br
   eps_uk   M horiz [kNm]   M incl [kNm]  P incl [kN]  R_exp/R_calc
    0.050           234.0          267.9        258.7         1.002
    0.075           234.0          257.9        248.6         1.042
-   0.100           234.0          252.5        243.2         1.066  <- params.yaml
+   0.100           234.0          252.5        243.2         1.066  <- params.json
    0.150           234.0          246.7        237.5         1.091
    0.231           234.0          242.5        233.3         1.111
 
@@ -51,7 +51,7 @@ level = design   branch = elasticperfectlyplastic   case = with_stirrups
   materials      f_ck =   8.71 MPa   f_cd =  5.807 MPa   f_yk =  364.5 MPa   f_yd =  317.0 MPa
   self weight    g_k  = 4.6875 kN/m   M_g = 9.223 kNm   V_g = 9.375 kN   (gamma_G = 1.35)
   bending after EC2 6.1            M_R  =   171.41 kNm  ->  P =   159.0 kN
-  shear after EC2 6.2.3          V_R  =   262.16 kN   ->  P =   249.5 kN   (theta = 39.84 deg, cot = 1.199, V_R,s = 262.6, V_R,max = 262.2 kN)
+  shear after EC2 6.2.3          V_R  =   262.22 kN   ->  P =   249.6 kN   (theta = 39.90 deg, cot = 1.196, V_R,s = 262.2, V_R,max = 262.3 kN)
   ==>  P = 159.0 kN   (bending governs)
        P_k = P / 1.5 = 106.0 kN
 
@@ -84,7 +84,7 @@ so EC2 6.2.2(6) applies and is worth about 17 % on Q7. against Q6 = 159.0 kN, re
 ==============================================================================
 4. Additional study — target failure probability of 1e-6, safety formats
 ==============================================================================
-NOTE ON VINTAGE  Investigations 1-3 cite EN 1992-1-1:2004 + AC:2010, the edition in this repository. The safety-format constants below come from a DIFFERENT edition — EN 1992-1-1:2023 Annex A — and from EN 1990 and fib MC2020. EC2:2023 renumbers the standard, so 'Annex A' does not denote the same thing in the two editions and the clause numbers above do not carry over. None of those three documents is in this repository; every constant taken from them is therefore an unverified assumption here (see notes.md). The RESISTANCES being factored, by contrast, are all computed to the 2011 edition — only the factors applied to them are of the newer vintage.
+NOTE ON VINTAGE  Investigations 1-3 cite EN 1992-1-1:2004 + AC:2010. The safety-format constants below come from a DIFFERENT edition — EN 1992-1-1:2023 Annex A — and from EN 1990 and fib MC2020. EC2:2023 renumbers the standard, so 'Annex A' does not denote the same thing in the two editions and the clause numbers above do not carry over. Every constant taken from those three documents is an unverified assumption here (see additional_notes.md). The RESISTANCES being factored, by contrast, are all computed to the 2011 edition — only the factors applied to them are of the newer vintage.
 
 Q6 and Q7 both ask for P at a target p_f = 1e-6, but name no reference period. That omission moves the answer by ~15 %, so it has to be stated:
 
@@ -138,3 +138,4 @@ NOTE 3  min(P_bending, P_shear) is only valid if both modes carry their own
           Here bending governs by 1.6x at design level,
           so it does not flip for Q6 — but that has to be shown, not assumed.
           Q7 (investigation 3) is exactly the case where it HAS flipped.
+
