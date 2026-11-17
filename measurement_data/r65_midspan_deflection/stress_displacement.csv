@@ -1,0 +1,16 @@
+sensor_id,reading_id,stage_id,reading_no,sigma_eII_kg_cm2,sigma_source,sigma_eII_digitized_kg_cm2,f_mm,note
+D01,R01,LS0,1,0,stage_nominal,22,0.0,"plotted origin, reference reading"
+D01,R02,PC1,1,470,digitized,471,0.3,"before cracking, stage value not reported"
+D01,R03,PC2,1,700,digitized,700,0.44,"before cracking, stage value not reported"
+D01,R04,LS2,1,1000,stage_nominal,990,0.68,
+D01,R05,LS2,2,1000,stage_nominal,994,0.8,
+D01,R06,LS3,1,1500,stage_nominal,1457,2.33,
+D01,R07,LS3,2,1500,stage_nominal,1478,2.57,
+D01,R08,LS4,1,2000,stage_nominal,1996,3.93,
+D01,R09,LS4,2,2000,stage_nominal,1981,4.09,
+D01,R10,LS5,1,2500,stage_nominal,2468,5.33,before the 14 load cycles
+D01,R11,LS5c14,1,2500,stage_nominal,2470,5.93,after 14 load cycles at stage 5
+D01,R12,LS6,1,3000,stage_nominal,2996,6.99,
+D01,R13,LS6,2,3000,stage_nominal,2996,7.19,
+D01,R14,LS7,1,3500,stage_nominal,3469,8.34,
+D01,R15,LS7,2,3500,stage_nominal,3459,8.69,

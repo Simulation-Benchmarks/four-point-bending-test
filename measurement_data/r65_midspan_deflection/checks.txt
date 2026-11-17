@@ -1,0 +1,27 @@
+Plausibility checks for the R65 midspan deflection
+
+readings: 15, flagged readings: 0
+f non-decreasing in reading order: yes
+ring match score: min 0.64, max shift from seed 1.2 px
+digitized sigma - stage value (stage readings): max |dev| = 43 kg/cm2 (tolerance 50)
+
+Readings at the same sigma_eII: deflection gap between the two readings
+  sigma = 1000: R04 (LS2) 0.68 mm -> R05 (LS2) 0.80 mm, gap +0.12 mm
+  sigma = 1500: R06 (LS3) 2.33 mm -> R07 (LS3) 2.57 mm, gap +0.24 mm
+  sigma = 2000: R08 (LS4) 3.93 mm -> R09 (LS4) 4.09 mm, gap +0.16 mm
+  sigma = 2500: R10 (LS5) 5.33 mm -> R11 (LS5c14) 5.93 mm, gap +0.60 mm
+  sigma = 3000: R12 (LS6) 6.99 mm -> R13 (LS6) 7.19 mm, gap +0.20 mm
+  sigma = 3500: R14 (LS7) 8.34 mm -> R15 (LS7) 8.69 mm, gap +0.35 mm
+
+Secant stiffness P/f before cracking (origin -> PC2): 8.6 t/mm; after cracking (LS2 -> LS7, first readings): 1.8 t/mm
+
+Cross-check with r65_edge_strain: deflection from integrated curvature (lever arm 58.0 cm, front/back mean) vs digitized f
+  LS2    from strains  0.70 mm   plotted 0.68 / 0.80 mm
+  LS3    from strains  2.37 mm   plotted 2.33 / 2.57 mm
+  LS4    from strains  3.77 mm   plotted 3.93 / 4.09 mm
+  LS5c14 from strains  5.38 mm   plotted 5.93 mm
+  LS6    from strains  6.44 mm   plotted 6.99 / 7.19 mm
+  LS7    from strains  7.71 mm   plotted 8.34 / 8.69 mm
+  (information only: the strain gauges measure 1.0 and 3.5 cm inside the edges, and it is not known which of the two deflection readings the strains belong to)
+
+Flags: 0 readings, see flags.csv
