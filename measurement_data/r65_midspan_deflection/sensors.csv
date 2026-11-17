@@ -1,0 +1,2 @@
+sensor_id,measurement,x_cm,y_cm,z_cm,instrument,resolution_mm
+D01,midspan_deflection,200,,,roller deflection gauge (Rollenmessapparat),0.1

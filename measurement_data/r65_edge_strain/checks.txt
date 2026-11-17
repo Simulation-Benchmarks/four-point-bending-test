@@ -1,0 +1,18 @@
+Plausibility checks for the R65 edge strains
+
+sensors: 32, load stages: 6, values: 191 of 192, flagged sensor/stage pairs: 17
+missing values: [('C16', 'LS6')]
+
+Mean strain of the four gauges inside the constant-moment zone (x = 100..300 cm) per face:
+  tension     front LS2=+0.112  LS3=+0.534  LS4=+0.865  LS5c14=+1.264  LS6=+1.456  LS7=+1.739
+  tension     back  LS2=+0.135  LS3=+0.563  LS4=+0.845  LS5c14=+1.181  LS6=+1.425  LS7=+1.685
+  compression front LS2=-0.107  LS3=-0.249  LS4=-0.361  LS5c14=-0.493  LS6=-0.613  LS7=-0.729
+  compression back  LS2=-0.109  LS3=-0.276  LS4=-0.393  LS5c14=-0.544  LS6=-0.664  LS7=-0.801
+
+Steel strain check at LS7: sigma_eII / E_s = 3500 / 2.1e+06 = 1.67 permille; mean concrete strain 3.5 cm from the tension edge (near the bar level, h = 58.5 cm) = 1.71 permille (OK, within 0.3 permille)
+
+Front/back agreement (same x, same level): mean |front - back| per stage, permille
+  tension     LS2=0.028  LS3=0.041  LS4=0.043  LS5c14=0.119  LS6=0.131  LS7=0.185
+  compression LS2=0.012  LS3=0.021  LS4=0.025  LS5c14=0.034  LS6=0.039  LS7=0.051
+
+Flags: 17 sensor/stage pairs, see flags.csv

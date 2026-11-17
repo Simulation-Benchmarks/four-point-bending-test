@@ -1,0 +1,18 @@
+sensor_id,stage_id,note
+C01,LS4,traced vertex 10.0 px from approximate input
+C01,LS6,traced vertex 12.7 px from approximate input
+C01,LS7,strain magnitude lower than at LS6 (-0.072)
+C09,LS4,traced vertex 16.6 px from approximate input
+C09,LS5c14,strain magnitude lower than at LS4 (-0.084)
+C15,LS6,left segment not drawn in the figure
+C16,LS6,right segment not drawn in the figure; no segment could be traced
+T03,LS7,left/right segment lines disagree by 0.031 permille (4.3 px) at the vertex
+T07,LS7,left/right segment lines disagree by 0.039 permille (5.5 px) at the vertex
+T13,LS5c14,left/right segment lines disagree by 0.031 permille (4.5 px) at the vertex
+T13,LS6,left/right segment lines disagree by 0.031 permille (4.5 px) at the vertex
+T13,LS7,left/right segment lines disagree by 0.026 permille (3.6 px) at the vertex
+T14,LS6,left/right segment lines disagree by 0.028 permille (3.9 px) at the vertex
+T14,LS7,left/right segment lines disagree by 0.064 permille (9.0 px) at the vertex
+T15,LS5c14,left/right segment lines disagree by 0.022 permille (3.0 px) at the vertex
+T15,LS7,left/right segment lines disagree by 0.027 permille (3.7 px) at the vertex
+T16,LS4,strain magnitude lower than at LS3 (+0.018)

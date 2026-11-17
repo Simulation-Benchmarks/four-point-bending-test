@@ -1,0 +1,16 @@
+sensor_id,reading_id,stage_id,reading_no,P_kg,P_total_kg,M_mt,load_source,f_mm,note
+D01,R01,LS0,1,0,0,0.0,stage_nominal,0.0,"plotted origin, reference reading"
+D01,R02,PC1,1,2541,5081,2.541,digitized,0.3,"before cracking, stage value not reported"
+D01,R03,PC2,1,3784,7568,3.784,digitized,0.44,"before cracking, stage value not reported"
+D01,R04,LS2,1,5405,10811,5.405,stage_nominal,0.68,
+D01,R05,LS2,2,5405,10811,5.405,stage_nominal,0.8,
+D01,R06,LS3,1,8108,16216,8.108,stage_nominal,2.33,
+D01,R07,LS3,2,8108,16216,8.108,stage_nominal,2.57,
+D01,R08,LS4,1,10811,21622,10.811,stage_nominal,3.93,
+D01,R09,LS4,2,10811,21622,10.811,stage_nominal,4.09,
+D01,R10,LS5,1,13514,27027,13.514,stage_nominal,5.33,before the 14 load cycles
+D01,R11,LS5c14,1,13514,27027,13.514,stage_nominal,5.93,after 14 load cycles at stage 5
+D01,R12,LS6,1,16216,32432,16.216,stage_nominal,6.99,
+D01,R13,LS6,2,16216,32432,16.216,stage_nominal,7.19,
+D01,R14,LS7,1,18919,37838,18.919,stage_nominal,8.34,
+D01,R15,LS7,2,18919,37838,18.919,stage_nominal,8.69,
