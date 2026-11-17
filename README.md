@@ -1,3 +1,6 @@
+# four_point_bending_test
+
+The repository contains different simulation models for the four point bending test.
 # ANSYS REINF BEAM
 
 Fully parameterized APDL input files for reinforced concrete beam in a 4 point bending setup using two symmetry planes.

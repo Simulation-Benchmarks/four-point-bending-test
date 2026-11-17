@@ -1,0 +1,36 @@
+"""Run the R65 parameter study.
+
+Writes ``results/metrics.json`` (the benchmark answers) and
+``results/parameter_study.log`` (the full study output).
+
+From anywhere in the repository, with snakemake available (the study itself
+runs in the ``fibtg243`` env, which the rule activates via ``conda run``)::
+
+    conda run -n snakemake_environment snakemake -s eurocode_model/Snakefile --cores 1
+
+or, equivalently, ``python eurocode_model/run_benchmark.py``.
+"""
+
+# parameter_study.py imports ``eurocode_model.ec2_design_calculation``, so it
+# has to run from the repository root as a module — whatever directory
+# snakemake was started in.
+workdir: workflow.basedir + "/.."
+
+
+rule all:
+    input:
+        "eurocode_model/results/metrics.json",
+
+
+rule parameter_study:
+    input:
+        script="eurocode_model/parameter_study.py",
+        model="eurocode_model/ec2_design_calculation.py",
+        params="eurocode_model/params.json",
+        common_params="parameters.json",
+    output:
+        metrics="eurocode_model/results/metrics.json",
+    log:
+        "eurocode_model/results/parameter_study.log",
+    shell:
+        "conda run -n fibtg243 python -m eurocode_model.parameter_study > {log} 2>&1"

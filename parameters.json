@@ -1,0 +1,35 @@
+{
+  "geometry": {
+    "length_span[m]": 4,
+    "length_cant[m]": 0.255,
+    "length_load[m]": 1,
+    "height_tot[m]": 0.625,
+    "depth_tot[m]": 0.30,
+    "d_eff[m]": 0.587,
+    "height_cover[m]": 0.0385,
+    "width_cover[m]": 0.0385,
+    "width_supp[m]": 0.3,
+    "width_load[m]": 0.2,
+    "x_stirrup_1[m]": 0.06,
+    "x_stirrup_2[m]": 0.165,
+    "x_stirrup_3[m]": 0.12
+  },
+  "reinforcement": {
+    "diam_reinf_lower[m]": 26e-3,
+    "n_reinf_lower[-]": 2,
+    "diam_reinf_upper[m]": 10e-3,
+    "n_reinf_upper[-]": 2,
+    "diam_reinf_stir[m]": 10e-3,
+    "n_legs_stir[-]": 2
+  },
+  "reinforcement_steel": {
+    "sig_ry[N/m^2]": 401.00e6,
+    "sig_ru[N/m^2]": 596.00e6,
+    "eps_ru[-]": 0.231
+  },
+  "concrete": {
+    "e_c[N/m^2]": 25660e6,
+    "sig_cc[N/m^2]": 16.71e6,
+    "sig_ct[N/m^2]": 1.30e6
+  }
+}
