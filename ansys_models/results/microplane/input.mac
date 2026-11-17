@@ -1,0 +1,93 @@
+/CLEAR
+FINISH
+
+! Set filenames
+filname = 'REINF_CONC_BEAM'
+/FILNAME, filname
+/OUTPUT,output,txt
+
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+! Rendered by Snakemake (rule render_input) from common/input.mac.j2,
+! ../parameters.json (benchmark data), common/parameters.json and
+! microplane/parameters.json. Do not edit by hand.
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+! Model selection - prep.mac and material.mac substitute %MAT_MODEL% into a subdirectory name
+MAT_MODEL = 'microplane'
+
+PI = acos(-1)
+
+! ### Input parameters (from JSON) ###
+! --- geometry ---
+length_span = 4
+length_cant = 0.255
+length_load = 1
+height_tot = 0.625
+depth_tot = 0.30
+d_eff = 0.587
+height_cover = 0.0385
+width_cover = 0.0385
+width_supp = 0.3
+width_load = 0.2
+x_stirrup_1 = 0.06
+x_stirrup_2 = 0.165
+x_stirrup_3 = 0.12
+height_load = 0.05
+height_supp = 0.05
+num_cuts_12cm = 10
+! --- reinforcement ---
+diam_reinf_lower = 26e-3
+n_reinf_lower = 2
+diam_reinf_upper = 10e-3
+n_reinf_upper = 2
+diam_reinf_stir = 10e-3
+n_legs_stir = 2
+! --- reinforcement_steel ---
+sig_ry = 401.00e6
+sig_ru = 596.00e6
+eps_ru = 0.231
+e_reinf = 2.05e11
+nu_reinf = 0.3
+! --- concrete ---
+e_c = 25660e6
+sig_cc = 16.71e6
+sig_ct = 1.30e6
+nu_c = 0.2
+! --- mesh ---
+ele_length = 0.05
+! --- loading ---
+displacement = -0.007
+! --- solver ---
+step_init = 200
+step_max = 20000
+step_min = 25
+! --- plate_steel ---
+e_supp = 2.1e11
+nu_supp = 0.3
+! --- microplane ---
+sigVc0 = -13.368e6
+R_MP = 2
+D_MP = 4e4
+Rt = 1
+gamt0 = 0
+gamc0 = 2e-5
+betat = 0.3e4
+betac = 0.2e4
+c_MP = 4e-4
+m_MP = 2.5
+
+! ### Derived parameters ###
+eps_ry = sig_ry/e_reinf		! reinforcement yield strain [-]
+! DP strength parameters (also consumed by the Microplane TBDATA call)
+R_c	= sig_cc				! Uniaxial compressive strength
+R_t	= sig_ct				! Uniaxial tensile strength (recommended by dynardo (multiplas): R_t=0.1*R_c for normal concrete)
+R_b	= 1.2*R_c				! Biaxial compressive strength (recommended by dynardo (multiplas): R_b=1.2*R_c for normal concrete)
+
+! Start pre-processing
+/INPUT,../../common/prep,mac
+
+! Start solution
+/INPUT,../../common/solution,mac
+
+! Start post-processing
+/INPUT,../../common/post,mac

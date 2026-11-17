@@ -4,3 +4,6 @@ channels:
   - bioconda
 dependencies:
   - snakemake
+  - pip
+  - pip:
+    - Jinja2

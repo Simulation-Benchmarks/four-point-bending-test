@@ -1,0 +1,19 @@
+{
+  "dilatation": {
+    "del_t[-]": 0.25,
+    "del_c[-]": 1.0
+  },
+  "hsd": {
+    "omega_ci[-]": 0.33,
+    "omega_cr[-]": 0.2,
+    "omega_tr[-]": 0.1,
+    "kappa_cr[-]": 0.01,
+    "kappa_tr[-]": 0.001,
+    "omega_cu[-]": 0.85,
+    "G_ft[N/m]": 100
+  },
+  "switches": {
+    "switch_hsd[-]": 1,
+    "switch_dp[-]": 0
+  }
+}

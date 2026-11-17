@@ -2,7 +2,6 @@
 /CLAUDE.md
 .snakemake/
 /.vscode
-model_select.mac
 __pycache__/
 *.rst
 *.emat

@@ -1,0 +1,29 @@
+{
+  "geometry": {
+    "height_load[m]": 0.05,
+    "height_supp[m]": 0.05,
+    "num_cuts_12cm[-]": 10
+  },
+  "mesh": {
+    "ele_length[m]": 0.05
+  },
+  "loading": {
+    "displacement[m]": -0.007
+  },
+  "solver": {
+    "step_init[-]": 200,
+    "step_max[-]": 20000,
+    "step_min[-]": 25
+  },
+  "reinforcement_steel": {
+    "e_reinf[N/m^2]": 2.05e11,
+    "nu_reinf[-]": 0.3
+  },
+  "plate_steel": {
+    "e_supp[N/m^2]": 2.1e11,
+    "nu_supp[-]": 0.3
+  },
+  "concrete": {
+    "nu_c[-]": 0.2
+  }
+}
